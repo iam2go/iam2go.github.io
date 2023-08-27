@@ -22,6 +22,19 @@ module.exports = {
   },
   plugins: [
     `gatsby-plugin-postcss`,
+    {
+      resolve: `gatsby-plugin-webfonts`,
+      options: {
+        fonts: {
+          google2: [
+            {
+              family: "IBM Plex Sans KR",
+              axes: "wght@300;400;500;600",
+            },
+          ],
+        },
+      },
+    },
     `gatsby-plugin-image`,
     {
       resolve: `gatsby-source-filesystem`,

@@ -3,9 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  @font-face {
-    font-family: ;
-  }
   h1 {
     @apply text-2xl font-semibold;
   }
