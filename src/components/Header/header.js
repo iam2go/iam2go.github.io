@@ -8,7 +8,7 @@ const Header = ({ location, title }) => {
   const isRootPath = location.pathname === rootPath
 
   return (
-    <div className="bg-black-800 absolute top-0 left-0 w-full h-48">
+    <div className="bg-black-800 sticky top-0 left-0 w-full h-48">
       <div className="max-w-5xl h-full mx-auto flex flex-col justify-center items-center gap-3 relative">
         <StaticImage
           className="bio-avatar justify-center"

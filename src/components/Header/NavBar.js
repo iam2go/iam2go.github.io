@@ -10,10 +10,10 @@ const NavBar = () => {
         <FaHouse size={20} color="#FFC767" />
       </Link>
       <Link to="/tags">
-        <h2 className=" text-white">Tags</h2>
+        <h3 className=" text-white">Tags</h3>
       </Link>
       <Link to="/about">
-        <h2 className=" text-white">About</h2>
+        <h3 className=" text-white">About</h3>
       </Link>
       <Toggle />
     </div>

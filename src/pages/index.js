@@ -31,21 +31,28 @@ const BlogIndex = ({ data, location }) => {
           const title = post.frontmatter.title || post.fields.slug
 
           return (
-            <li key={post.fields.slug}>
+            <li
+              key={post.fields.slug}
+              className="bg-black-800 min-h-[12rem] rounded-xl p-8 my-8"
+            >
               <article
                 className="post-list-item"
                 itemScope
                 itemType="http://schema.org/Article"
               >
-                <header>
-                  <h2>
-                    <Link to={post.fields.slug} itemProp="url">
-                      <span itemProp="headline">{title}</span>
-                    </Link>
-                  </h2>
-                  <small>{post.frontmatter.date}</small>
-                </header>
-                <section>
+                <h2 className="text-white">
+                  <Link to={post.fields.slug} itemProp="url">
+                    <span itemProp="headline">{title}</span>
+                  </Link>
+                </h2>
+                <div className="flex gap-1 my-3">
+                  {post.frontmatter.tag?.map(tag => (
+                    <div className="text-white px-4 bg-black-600 rounded-2xl text-sm  font-light leading-6">
+                      {tag}
+                    </div>
+                  ))}
+                </div>
+                <section className="text-white text-sm  font-light ">
                   <p
                     dangerouslySetInnerHTML={{
                       __html: post.frontmatter.description || post.excerpt,
@@ -53,6 +60,9 @@ const BlogIndex = ({ data, location }) => {
                     itemProp="description"
                   />
                 </section>
+                <small className="text-[#FFC767] text-xs">
+                  {post.frontmatter.date}
+                </small>
               </article>
             </li>
           )
@@ -88,6 +98,7 @@ export const pageQuery = graphql`
           date(formatString: "MMMM DD, YYYY")
           title
           description
+          tag
         }
       }
     }

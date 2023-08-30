@@ -6,10 +6,10 @@ const Layout = ({ location, title, children }) => {
   const rootPath = `${__PATH_PREFIX__}/`
   const isRootPath = location.pathname === rootPath
   return (
-    <div className="global-wrapper" data-is-root-path={isRootPath}>
+    <div data-is-root-path={isRootPath}>
       {/* <header className="global-header">{header}</header> */}
       <Header location={location} title={title} />
-      <main>{children}</main>
+      <main className="max-w-5xl h-full mx-auto ">{children}</main>
       <footer>
         © {new Date().getFullYear()}, Built with
         {` `}
