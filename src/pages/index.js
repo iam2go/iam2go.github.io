@@ -52,17 +52,17 @@ const BlogIndex = ({ data, location }) => {
                     </div>
                   ))}
                 </div>
-                <section className="text-text-default text-sm  font-light ">
+                <div className="text-text-default text-sm  font-light my-5">
                   <p
                     dangerouslySetInnerHTML={{
                       __html: post.frontmatter.description || post.excerpt,
                     }}
                     itemProp="description"
                   />
-                </section>
-                <small className="text-accent-default text-xs">
+                </div>
+                <div className="text-accent-default text-xs">
                   {post.frontmatter.date}
-                </small>
+                </div>
               </article>
             </li>
           )
