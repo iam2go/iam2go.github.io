@@ -5,6 +5,7 @@ import Layout from "../components/layout"
 import Seo from "../components/seo"
 
 import "../styles/global.css"
+import { Tag, TagBox } from "../components/Tag"
 
 const BlogIndex = ({ data, location }) => {
   const siteTitle = data.site.siteMetadata?.title || `Title`
@@ -45,13 +46,14 @@ const BlogIndex = ({ data, location }) => {
                     <span itemProp="headline">{title}</span>
                   </Link>
                 </h2>
-                <div className="flex gap-1 my-3">
+                <TagBox>
                   {post.frontmatter.tag?.map(tag => (
-                    <div className="text-text-default px-4 bg-background-primary rounded-2xl text-sm  font-light leading-6">
-                      {tag}
-                    </div>
+                    <Tag
+                      className="text-text-default px-4 bg-background-primary rounded-2xl text-sm  font-light leading-6"
+                      text={tag}
+                    />
                   ))}
-                </div>
+                </TagBox>
                 <div className="text-text-default text-sm  font-light my-5">
                   <p
                     dangerouslySetInnerHTML={{

@@ -23,6 +23,7 @@ module.exports = {
         },
         accent: {
           default: "rgba(var(--color-accent) , <alpha-value>)",
+          soft: "rgba(var(--color-accent-soft) , <alpha-value>)",
         },
       },
     },

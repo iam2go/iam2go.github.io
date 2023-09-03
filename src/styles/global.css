@@ -8,6 +8,7 @@
   --color-primary-background: 240, 236, 235;
   --color-text: 33, 36, 38;
   --color-accent: 255, 110, 91;
+  --color-accent-soft: 255, 134, 118;
   --font: "IBM Plex Sans KR", system-ui, -apple-system;
 }
 
@@ -23,6 +24,7 @@
   --color-primary-background: 80, 82, 89;
   --color-text: 255, 255, 255;
   --color-accent: 252, 200, 43;
+  --color-accent-soft: 255, 134, 118;
 }
 
 html {
