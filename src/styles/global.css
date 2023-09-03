@@ -2,15 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-background: 250, 249, 249;
+  --color-sub-background: 255, 255, 255;
+  --color-primary-background: 240, 236, 235;
+  --color-text: 33, 36, 38;
+  --color-accent: 255, 110, 91;
+  --font: "IBM Plex Sans KR", system-ui, -apple-system;
+}
+
+*,
+:after,
+:before {
+  box-sizing: border-box;
+}
+
+.dark {
+  --color-background: 33, 36, 38;
+  --color-sub-background: 53, 54, 58;
+  --color-primary-background: 80, 82, 89;
+  --color-text: 255, 255, 255;
+  --color-accent: 252, 200, 43;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--color-text);
+}
+
 @layer base {
   body {
-    @apply bg-black-950;
+    @apply bg-background-default text-text-default;
   }
   h1 {
-    @apply text-2xl font-semibold;
+    @apply text-2xl font-semibold text-text-default;
   }
 
   h2 {
-    @apply text-xl font-medium;
+    @apply text-xl font-medium text-text-default;
+  }
+
+  input.switch:checked ~ span .dot {
+    --tw-translate-x: 1.5rem; /* translate-x-7 */
   }
 }

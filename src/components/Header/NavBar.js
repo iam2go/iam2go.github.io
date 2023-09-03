@@ -7,13 +7,13 @@ const NavBar = () => {
   return (
     <div className="flex items-center absolute bottom-4 right-5 w-64 justify-around">
       <Link to="/">
-        <FaHouse size={20} color="#FFC767" />
+        <FaHouse size={20} className="text-accent-default" />
       </Link>
       <Link to="/tags">
-        <h3 className=" text-white">Tags</h3>
+        <h3>Tags</h3>
       </Link>
       <Link to="/about">
-        <h3 className=" text-white">About</h3>
+        <h3>About</h3>
       </Link>
       <Toggle />
     </div>

@@ -4,6 +4,7 @@ module.exports = {
     "./src/pages/**/*.{js,jsx,ts,tsx}",
     "./src/components/**/*.{js,jsx,ts,tsx}",
   ],
+  darkMode: ["class", "[data-mode='dark']"],
   theme: {
     extend: {
       colors: {
@@ -11,6 +12,17 @@ module.exports = {
           950: "#212426",
           800: "#35363a",
           600: "#505259",
+        },
+        background: {
+          default: "rgba(var(--color-background) , <alpha-value>)",
+          sub: "rgba(var(--color-sub-background) , <alpha-value>)",
+          primary: "rgba(var(--color-primary-background) , <alpha-value>)",
+        },
+        text: {
+          default: "rgba(var(--color-text) , <alpha-value>)",
+        },
+        accent: {
+          default: "rgba(var(--color-accent) , <alpha-value>)",
         },
       },
     },

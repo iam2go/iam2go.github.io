@@ -33,26 +33,26 @@ const BlogIndex = ({ data, location }) => {
           return (
             <li
               key={post.fields.slug}
-              className="bg-black-800 min-h-[12rem] rounded-xl p-8 my-8"
+              className="bg-background-sub min-h-[12rem] rounded-xl p-8 my-8"
             >
               <article
                 className="post-list-item"
                 itemScope
                 itemType="http://schema.org/Article"
               >
-                <h2 className="text-white">
+                <h2>
                   <Link to={post.fields.slug} itemProp="url">
                     <span itemProp="headline">{title}</span>
                   </Link>
                 </h2>
                 <div className="flex gap-1 my-3">
                   {post.frontmatter.tag?.map(tag => (
-                    <div className="text-white px-4 bg-black-600 rounded-2xl text-sm  font-light leading-6">
+                    <div className="text-text-default px-4 bg-background-primary rounded-2xl text-sm  font-light leading-6">
                       {tag}
                     </div>
                   ))}
                 </div>
-                <section className="text-white text-sm  font-light ">
+                <section className="text-text-default text-sm  font-light ">
                   <p
                     dangerouslySetInnerHTML={{
                       __html: post.frontmatter.description || post.excerpt,
@@ -60,7 +60,7 @@ const BlogIndex = ({ data, location }) => {
                     itemProp="description"
                   />
                 </section>
-                <small className="text-[#FFC767] text-xs">
+                <small className="text-accent-default text-xs">
                   {post.frontmatter.date}
                 </small>
               </article>
