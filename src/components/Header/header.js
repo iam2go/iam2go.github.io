@@ -8,8 +8,8 @@ const Header = ({ location, title }) => {
   const isRootPath = location.pathname === rootPath
 
   return (
-    <div className="bg-black-800 sticky top-0 left-0 w-full h-48">
-      <div className="max-w-5xl h-full mx-auto flex flex-col justify-center items-center gap-3 relative">
+    <div className="bg-black-800/50 left-0 w-full h-48 sticky top-[-8rem] backdrop-blur-sm">
+      <div className="h-48 max-w-5xl  mx-auto flex flex-col justify-center items-center gap-3 relative">
         <StaticImage
           className="bio-avatar justify-center"
           layout="fixed"
@@ -20,10 +20,12 @@ const Header = ({ location, title }) => {
           quality={95}
           alt="Profile picture"
         />
-        <Link to="/">
-          <h1 className="text-white tracking-wide">{title}</h1>
-        </Link>
-        <NavBar />
+        <div className="h-16 sticky max-w-5xl w-full mx-auto top-0 py-4">
+          <Link to="/">
+            <h1 className="text-white tracking-wide text-center">{title}</h1>
+          </Link>
+          <NavBar />
+        </div>
       </div>
     </div>
   )
