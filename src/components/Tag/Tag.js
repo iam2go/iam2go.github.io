@@ -1,6 +1,6 @@
 import React from "react"
 const TagBox = ({ children }) => {
-  return <div className="flex gap-1 my-3">{children}</div>
+  return <div className="flex gap-1.5 my-3">{children}</div>
 }
 
 const Tag = ({ text }) => {

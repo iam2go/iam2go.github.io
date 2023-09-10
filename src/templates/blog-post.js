@@ -1,9 +1,11 @@
 import * as React from "react"
 import { Link, graphql } from "gatsby"
+import { FaAngleRight, FaAngleLeft } from "react-icons/fa6"
 
 import Bio from "../components/bio"
 import Layout from "../components/layout"
 import Seo from "../components/seo"
+import { Tag, TagBox } from "../components/Tag"
 
 const BlogPostTemplate = ({
   data: { previous, next, site, markdownRemark: post },
@@ -14,47 +16,47 @@ const BlogPostTemplate = ({
   return (
     <Layout location={location} title={siteTitle}>
       <article
-        className="blog-post"
+        className="blog-post px-8 pt-10"
         itemScope
         itemType="http://schema.org/Article"
       >
-        <header>
+        <header className="text-center py-14">
           <h1 itemProp="headline">{post.frontmatter.title}</h1>
-          <p>{post.frontmatter.date}</p>
+          <p className="text-accent-default text-xs mt-8">
+            {post.frontmatter.date}
+          </p>
         </header>
         <section
+          className="h-fit my-28 text-text-default"
           dangerouslySetInnerHTML={{ __html: post.html }}
           itemProp="articleBody"
         />
-        <hr />
-        <footer>
-          <Bio />
-        </footer>
+        <TagBox>
+          {post.frontmatter.tag.map(tag => (
+            <Tag key={tag} text={tag} />
+          ))}
+        </TagBox>
+        <hr className="my-10" />
+        <footer></footer>
       </article>
-      <nav className="blog-post-nav">
-        <ul
-          style={{
-            display: `flex`,
-            flexWrap: `wrap`,
-            justifyContent: `space-between`,
-            listStyle: `none`,
-            padding: 0,
-          }}
-        >
-          <li>
-            {previous && (
-              <Link to={previous.fields.slug} rel="prev">
-                ← {previous.frontmatter.title}
-              </Link>
-            )}
-          </li>
-          <li>
-            {next && (
-              <Link to={next.fields.slug} rel="next">
-                {next.frontmatter.title} →
-              </Link>
-            )}
-          </li>
+      <nav className="blog-post-nav px-8">
+        <ul className="flex flex-wrap justify-between list-none p-0 text-text-default">
+          {previous && (
+            <Link to={previous.fields.slug} rel="prev">
+              <li className="bg-background-primary/50 text-sm p-3 rounded-xl h-fit flex items-center gap-3">
+                <FaAngleLeft size={22} className="text-accent-default" />
+                <p className="max-w-[28rem]">{previous.frontmatter.title}</p>
+              </li>
+            </Link>
+          )}
+          {next && (
+            <Link to={next.fields.slug} rel="next">
+              <li className="bg-background-primary/50 text-sm p-3 rounded-xl h-fit flex items-center gap-3">
+                <p className="max-w-[28rem]">{next.frontmatter.title}</p>
+                <FaAngleRight size={22} className="text-accent-default" />
+              </li>
+            </Link>
+          )}
         </ul>
       </nav>
     </Layout>
@@ -91,6 +93,7 @@ export const pageQuery = graphql`
         title
         date(formatString: "MMMM DD, YYYY")
         description
+        tag
       }
     }
     previous: markdownRemark(id: { eq: $previousPostId }) {

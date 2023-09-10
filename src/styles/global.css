@@ -2,7 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+*,
+:after,
+:before {
+  box-sizing: border-box;
+}
+
+.light {
   --color-background: 250, 249, 249;
   --color-sub-background: 255, 255, 255;
   --color-primary-background: 240, 236, 235;
@@ -10,12 +16,6 @@
   --color-accent: 255, 110, 91;
   --color-accent-soft: 255, 134, 118;
   --font: "IBM Plex Sans KR", system-ui, -apple-system;
-}
-
-*,
-:after,
-:before {
-  box-sizing: border-box;
 }
 
 .dark {
@@ -51,5 +51,9 @@ body {
 
   input.switch:checked ~ span .dot {
     --tw-translate-x: 1.5rem; /* translate-x-7 */
+  }
+
+  hr {
+    @apply border-text-default/50;
   }
 }
