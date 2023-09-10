@@ -54,7 +54,7 @@ const BlogIndex = ({ data, location }) => {
                     />
                   ))}
                 </TagBox>
-                <div className="text-text-default text-sm  font-light my-5">
+                <div className="text-text-default text-sm  font-light my-5  line-clamp-2">
                   <p
                     dangerouslySetInnerHTML={{
                       __html: post.frontmatter.description || post.excerpt,
