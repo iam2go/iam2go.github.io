@@ -18,9 +18,11 @@ module.exports = {
           default: "rgba(var(--color-background) , <alpha-value>)",
           sub: "rgba(var(--color-sub-background) , <alpha-value>)",
           primary: "rgba(var(--color-primary-background) , <alpha-value>)",
+          syntax: "rgba(var(--syntax-background), <alpha-value>)",
         },
         text: {
           default: "rgba(var(--color-text) , <alpha-value>)",
+          syntax: "rgba(var(--syntax-plain-text), <alpha-value>)",
         },
         accent: {
           default: "rgba(var(--color-accent) , <alpha-value>)",

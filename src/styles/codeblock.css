@@ -1,0 +1,74 @@
+.light {
+  --syntax-background: #fbfbfb;
+  --syntax-highlight: #ddd7ef44;
+  --syntax-plain-text: #403f53;
+  --syntax-delete-text: rgba(239, 83, 80, 0.56);
+  --syntax-insert-text: rgb(72, 118, 214);
+  --syntax-comment-text: rgb(152, 159, 177);
+  --syntax-string-text: rgb(72, 118, 214);
+  --syntax-var-text: rgb(201, 103, 101);
+  --syntax-number-text: rgb(170, 9, 130);
+  --syntax-punctuation-text: rgb(153, 76, 195);
+  --syntax-function-text: rgb(153, 76, 195);
+  --syntax-class-text: rgb(17, 17, 17);
+  --syntax-tag-text: rgb(153, 76, 195);
+  --syntax-operator-text: rgb(12, 150, 155);
+  --syntax-boolean-text: rgb(188, 84, 84);
+}
+
+.dark {
+  --syntax-background: #292d3e;
+  --syntax-highlight: #686e7544;
+  --syntax-plain-text: #bfc7d5;
+  --syntax-delete-text: rgb(255, 85, 114);
+  --syntax-insert-text: rgb(72, 118, 214);
+  --syntax-comment-text: rgb(105, 112, 152);
+  --syntax-string-text: rgb(195, 232, 141);
+  --syntax-var-text: rgb(191, 199, 213);
+  --syntax-number-text: rgb(247, 140, 108);
+  --syntax-punctuation-text: rgb(199, 146, 234);
+  --syntax-function-text: rgb(130, 170, 255);
+  --syntax-class-text: rgb(255, 203, 107);
+  --syntax-tag-text: rgb(255, 85, 114);
+  --syntax-operator-text: rgb(137, 221, 255);
+  --syntax-boolean-text: rgb(255, 88, 116);
+}
+
+code {
+  font-family: "Fira Code", Consolas, Monaco, "Andale Mono", "Ubuntu Mono",
+    monospace;
+  font-size: 1rem;
+  padding: 0.07rem 0.4rem;
+  border-radius: 0.3rem;
+}
+
+/* code[class*="language-"], */
+pre[class*="language-"] {
+  font-family: "Fira Code", Consolas, Monaco, "Andale Mono", "Ubuntu Mono",
+    monospace;
+  font-size: 1em;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.5;
+  border-radius: 0.75rem;
+  background: rgba(var(--color-primary-background), 0.5);
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+}
+
+.highlight-line {
+  background: var(--syntax-highlight);
+  display: block;
+  margin-right: -1rem;
+  margin-left: -1rem;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}

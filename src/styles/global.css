@@ -16,6 +16,7 @@
   --color-accent: 255, 110, 91;
   --color-accent-soft: 255, 134, 118;
   --font: "IBM Plex Sans KR", system-ui, -apple-system;
+  --syntax-background: 255, 110, 91;
 }
 
 .dark {
@@ -25,6 +26,7 @@
   --color-text: 255, 255, 255;
   --color-accent: 252, 200, 43;
   --color-accent-soft: 255, 134, 118;
+  --syntax-background: 53, 54, 58;
 }
 
 html {
