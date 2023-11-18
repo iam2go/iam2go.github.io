@@ -11,7 +11,10 @@ import { CodeBlock } from "../components/Block/CodeBlock"
 const components = {
   pre: CodeBlock,
   code: props => (
-    <code {...props} className="bg-background-primary text-accent-default" />
+    <code
+      {...props}
+      className="bg-background-primary text-accent-default bg-opacity-70"
+    />
   ),
 }
 

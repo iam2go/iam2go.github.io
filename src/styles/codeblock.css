@@ -62,13 +62,14 @@ pre[class*="language-"] {
   -moz-hyphens: none;
   -ms-hyphens: none;
   hyphens: none;
+  padding: 1.5rem 1.8rem;
 }
 
 .highlight-line {
   background: var(--syntax-highlight);
   display: block;
-  margin-right: -1rem;
-  margin-left: -1rem;
-  padding-right: 1rem;
-  padding-left: 1rem;
+  margin-right: -1.8rem;
+  margin-left: -1.8rem;
+  padding-right: 1.8rem;
+  padding-left: 1.8rem;
 }
