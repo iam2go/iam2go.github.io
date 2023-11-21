@@ -8,7 +8,7 @@ const ThemeSwitch = () => {
     const updatedTheme = theme === "light" ? "dark" : "light"
     setTheme(updatedTheme)
     window.__setPreferredTheme(updatedTheme)
-  })
+  }, [theme])
 
   useEffect(() => {
     if (typeof window === "object") {

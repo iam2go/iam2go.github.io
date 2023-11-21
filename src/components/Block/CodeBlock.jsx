@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react"
-import { Highlight, themes } from "prism-react-renderer"
-import cn from "classnames"
+import React from "react"
+import { Highlight } from "prism-react-renderer"
 import "../../styles/codeblock.css"
 import theme from "./theme"
 

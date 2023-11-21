@@ -2,7 +2,6 @@ import * as React from "react"
 import { Link, graphql } from "gatsby"
 import { FaAngleRight, FaAngleLeft } from "react-icons/fa6"
 import { MDXProvider } from "@mdx-js/react"
-import Bio from "../components/bio"
 import Layout from "../components/layout"
 import Seo from "../components/seo"
 import { Tag, TagBox } from "../components/Tag"
@@ -45,7 +44,7 @@ const BlogPostTemplate = ({
           <MDXProvider components={components}>{children}</MDXProvider>
         </section>
         <TagBox>
-          {post.frontmatter.tag.map(tag => (
+          {post.frontmatter.tags.map(tag => (
             <Tag key={tag} text={tag} />
           ))}
         </TagBox>
@@ -105,7 +104,7 @@ export const pageQuery = graphql`
         title
         date(formatString: "MMMM DD, YYYY")
         description
-        tag
+        tags
       }
     }
     previous: mdx(id: { eq: $previousPostId }) {
