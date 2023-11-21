@@ -29,11 +29,11 @@ module.exports = {
           google2: [
             {
               family: "IBM Plex Sans KR",
-              axes: "wght@300;400;500;600;700;",
+              axes: "wght@300;400;500;600;700",
             },
             {
               family: "Fira Code",
-              axes: "wght@400;500;600;700;",
+              axes: "wght@400;500;600;700",
             },
           ],
         },
