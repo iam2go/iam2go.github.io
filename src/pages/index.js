@@ -29,7 +29,7 @@ const BlogIndex = ({ data, location }) => {
   return (
     <Layout location={location} title={siteTitle}>
       {/* <Bio /> */}
-      <div className="my-10 flex gap-1.5 place-content-center">
+      <div className="my-10 flex  flex-wrap gap-1.5 place-content-center">
         {tags.map(tag => (
           <div
             className="text-text-default px-4 bg-background-primary bg-opacity-30 border border-text-default border-opacity-20 rounded-2xl text-xs  font-light leading-6 hover:bg-accent-default hover:bg-opacity-20 hover:border-accent-default hover:text-accent-default cursor-pointer transition"
@@ -53,20 +53,17 @@ const BlogIndex = ({ data, location }) => {
                 itemScope
                 itemType="http://schema.org/Article"
               >
-                <h2>
+                <TagBox>
+                  {post.frontmatter.tags?.map(tag => (
+                    <Tag text={tag} />
+                  ))}
+                </TagBox>
+                <h2 className="">
                   <Link to={post.fields.slug} itemProp="url">
                     <span itemProp="headline">{title}</span>
                   </Link>
                 </h2>
-                <TagBox>
-                  {post.frontmatter.tags?.map(tag => (
-                    <Tag
-                      className="text-text-default px-4 bg-background-primary rounded-2xl text-sm  font-light leading-6"
-                      text={tag}
-                    />
-                  ))}
-                </TagBox>
-                <div className="text-text-default text-sm  font-light my-5  line-clamp-2">
+                <div className="text-text-default text-default  font-light my-5  line-clamp-2">
                   <p
                     dangerouslySetInnerHTML={{
                       __html: post.frontmatter.description || post.excerpt,
@@ -74,7 +71,7 @@ const BlogIndex = ({ data, location }) => {
                     itemProp="description"
                   />
                 </div>
-                <div className="text-accent-default text-xs">
+                <div className="text-text-default text-xs">
                   {post.frontmatter.date}
                 </div>
               </article>
@@ -109,7 +106,7 @@ export const pageQuery = graphql`
           slug
         }
         frontmatter {
-          date(formatString: "MMMM DD, YYYY")
+          date(formatString: "YYYY.MM.DD")
           title
           description
           tags
