@@ -11,7 +11,6 @@ import { Tag, TagBox } from "../components/Tag"
 const BlogIndex = ({ data, location }) => {
   const siteTitle = data.site.siteMetadata?.title || `Title`
   const posts = data.allMdx.nodes
-  const tags = data.tagList.distinct
 
   if (posts.length === 0) {
     return (
@@ -29,16 +28,6 @@ const BlogIndex = ({ data, location }) => {
   return (
     <Layout location={location} title={siteTitle}>
       {/* <Bio /> */}
-      <div className="my-10 flex gap-1.5 place-content-center">
-        {tags.map(tag => (
-          <div
-            className="text-text-default px-4 bg-background-primary bg-opacity-30 border border-text-default border-opacity-20 rounded-2xl text-xs  font-light leading-6 hover:bg-accent-default hover:bg-opacity-20 hover:border-accent-default hover:text-accent-default cursor-pointer transition"
-            key={tag}
-          >
-            {tag}
-          </div>
-        ))}
-      </div>
       <ol style={{ listStyle: `none` }}>
         {posts.map(post => {
           const title = post.frontmatter.title || post.fields.slug
@@ -59,7 +48,7 @@ const BlogIndex = ({ data, location }) => {
                   </Link>
                 </h2>
                 <TagBox>
-                  {post.frontmatter.tags?.map(tag => (
+                  {post.frontmatter.tag?.map(tag => (
                     <Tag
                       className="text-text-default px-4 bg-background-primary rounded-2xl text-sm  font-light leading-6"
                       text={tag}
@@ -112,12 +101,9 @@ export const pageQuery = graphql`
           date(formatString: "MMMM DD, YYYY")
           title
           description
-          tags
+          tag
         }
       }
-    }
-    tagList: allMdx {
-      distinct(field: { frontmatter: { tags: SELECT } })
     }
   }
 `
