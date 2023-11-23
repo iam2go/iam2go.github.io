@@ -15,6 +15,7 @@
   --color-text: 33, 36, 38;
   --color-accent: 255, 110, 91;
   --color-accent-soft: 255, 134, 118;
+  --font: "IBM Plex Sans KR", system-ui, -apple-system;
   --syntax-background: 255, 110, 91;
 }
 
@@ -31,7 +32,6 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --font: "IBM Plex Sans KR", system-ui, -apple-system;
 }
 
 body {
@@ -44,11 +44,11 @@ body {
     @apply bg-background-default text-text-default;
   }
   h1 {
-    @apply text-[1.7rem] font-semibold text-text-default;
+    @apply text-2xl font-semibold text-text-default;
   }
 
   h2 {
-    @apply text-2xl font-semibold text-text-default;
+    @apply text-xl font-medium text-text-default;
   }
 
   h3 {
