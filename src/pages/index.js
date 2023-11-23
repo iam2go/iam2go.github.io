@@ -48,7 +48,7 @@ const BlogIndex = ({ data, location }) => {
                   </Link>
                 </h2>
                 <TagBox>
-                  {post.frontmatter.tag?.map(tag => (
+                  {post.frontmatter.tags?.map(tag => (
                     <Tag
                       className="text-text-default px-4 bg-background-primary rounded-2xl text-sm  font-light leading-6"
                       text={tag}
@@ -101,7 +101,7 @@ export const pageQuery = graphql`
           date(formatString: "MMMM DD, YYYY")
           title
           description
-          tag
+          tags
         }
       }
     }
