@@ -19,7 +19,7 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
   // Get all markdown blog posts sorted by date
   const result = await graphql(`
     {
-      allMdx(sort: { frontmatter: { date: ASC } }, limit: 1000) {
+      posts: allMdx(sort: { frontmatter: { date: ASC } }, limit: 1000) {
         nodes {
           id
           fields {
@@ -29,6 +29,12 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
             contentFilePath
           }
         }
+        tags: distinct(field: { frontmatter: { tags: SELECT } })
+      }
+      category: allDirectory(
+        filter: { absolutePath: { regex: "/content/blog//" } }
+      ) {
+        distinct(field: { name: SELECT })
       }
     }
   `)
@@ -41,7 +47,7 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
     return
   }
 
-  const posts = result.data.allMdx.nodes
+  const posts = result.data.posts.nodes
 
   // Create blog posts pages
   // But only if there's at least one markdown file found at "content/blog" (defined in gatsby-config.js)
@@ -63,6 +69,30 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
       })
     })
   }
+
+  const category = result.data.category.distinct
+  category.forEach(item => {
+    createPage({
+      path: `/category/${item}`,
+      component: path.resolve("./src/templates/search.js"),
+      context: {
+        type: "category",
+        value: item,
+      },
+    })
+  })
+
+  const tags = result.data.posts.tags
+  tags.forEach(tag => {
+    createPage({
+      path: `/tags/${tag}`,
+      component: path.resolve("./src/templates/search.js"),
+      context: {
+        type: "tag",
+        value: tag,
+      },
+    })
+  })
 }
 
 /**
