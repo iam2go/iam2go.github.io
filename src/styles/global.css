@@ -113,8 +113,14 @@ body {
     margin-bottom: 1.5rem;
   }
 
-  .blog-post ul {
+  .blog-post ul,
+  ol {
     margin-bottom: 2rem;
+  }
+
+  .blog-post ol {
+    list-style-type: none;
+    counter-reset: counter;
   }
 
   .blog-post ul li {
@@ -123,9 +129,25 @@ body {
     padding-left: 0.5rem;
   }
 
-  .blog-post li::marker {
+  .blog-post ul li::marker {
     content: "→";
     @apply text-accent-default font-bold;
+  }
+
+  .blog-post ol li {
+    margin-bottom: 0.5rem;
+  }
+
+  .blog-post ol li::before {
+    font-family: "Fira Code";
+    counter-increment: counter;
+    font-style: italic;
+    content: counter(counter) ".";
+    color: var(--color-text);
+    /* font-family: var(--font); */
+    font-size: 20px;
+    line-height: 18px;
+    text-align: center;
   }
 
   .blog-post pre {
@@ -134,5 +156,10 @@ body {
 
   .blog-post a {
     @apply text-accent-default underline decoration-accent-default;
+  }
+
+  .blog-post blockquote {
+    font-family: "Gowun Dodum";
+    @apply italic pl-3 border-l-[4px] border-opacity-70 border-accent-default;
   }
 }

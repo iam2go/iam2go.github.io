@@ -35,6 +35,10 @@ module.exports = {
               family: "Fira Code",
               axes: "wght@400;500;600;700",
             },
+            {
+              family: "Gowun Dodum",
+              axes: "wght@400",
+            },
           ],
         },
       },
