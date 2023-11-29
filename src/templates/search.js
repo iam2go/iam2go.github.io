@@ -2,6 +2,7 @@ import * as React from "react"
 import Layout from "../components/layout"
 import { graphql } from "gatsby"
 import PostBlock from "../components/Post/PostBlock"
+import { FaTags, FaListUl } from "react-icons/fa6"
 
 const SearchTemplate = ({ data, location, pageContext }) => {
   const siteTitle = data?.site.siteMetadata?.title || `Title`
@@ -10,7 +11,8 @@ const SearchTemplate = ({ data, location, pageContext }) => {
   return (
     <Layout location={location} title={siteTitle}>
       <h2 className="mt-10 mx-3">
-        🏷 <span className="font-extrabold mx-1">{pageContext.value}</span>
+        <FaTags size={18} className="inline-block mr-1  opacity-80" />
+        <span className="font-extrabold mx-1">{pageContext.value}</span>
         <span className="text-base">({posts.length})</span>
       </h2>
 
