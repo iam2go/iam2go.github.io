@@ -44,11 +44,11 @@ body {
     @apply bg-background-default text-text-default;
   }
   h1 {
-    @apply text-[1.7rem] font-semibold text-text-default;
+    @apply text-2xl font-semibold text-text-default;
   }
 
   h2 {
-    @apply text-2xl font-medium text-text-default;
+    @apply text-[1.3rem] font-medium text-text-default;
   }
 
   h3 {
@@ -154,7 +154,7 @@ body {
     margin-bottom: 2rem;
   }
 
-  .blog-post a {
+  .blog-post section a {
     @apply text-accent-default underline decoration-accent-default;
   }
 
