@@ -49,7 +49,9 @@ export const CodeBlock = ({ children }) => {
   return (
     <Highlight language={language} theme={theme} code={code}>
       {({ className, style, tokens, getLineProps, getTokenProps }) => (
-        <pre className={`${className}  bg-background-syntax text-text-syntax`}>
+        <pre
+          className={`${className}  bg-background-syntax text-text-synta overflow-x-auto`}
+        >
           {tokens.map((line, i) => {
             const lineProps = getLineProps({ line, key: i })
             const shouldExclude = highlightLine(line, lineProps)

@@ -52,7 +52,7 @@ body {
   }
 
   h3 {
-    @apply text-lg font-medium text-text-default;
+    @apply text-[1rem] font-medium text-text-default;
   }
 
   input.switch:checked ~ span .dot {

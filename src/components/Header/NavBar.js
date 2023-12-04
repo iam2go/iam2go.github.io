@@ -5,7 +5,7 @@ import ThemeSwitch from "./ThemeSwitch"
 
 const NavBar = () => {
   return (
-    <div className="flex items-center absolute bottom-4 right-5 w-64 justify-around text-text-default">
+    <div className="flex items-center absolute bottom-4 w-64 justify-around text-text-default md:right-4">
       <Link to="/">
         <FaHouse size={20} className="text-accent-default" />
       </Link>

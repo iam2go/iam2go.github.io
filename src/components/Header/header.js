@@ -20,7 +20,7 @@ const Header = ({ location, title }) => {
           quality={95}
           alt="Profile picture"
         />
-        <div className="h-16 sticky max-w-5xl w-full mx-auto top-0 py-4">
+        <div className="h-24 sticky max-w-5xl w-full mx-auto top-0 py-2 flex flex-col items-center md:h-16 md:justify-center">
           <Link to="/">
             <h1 className=" tracking-wide text-center">{title}</h1>
           </Link>
