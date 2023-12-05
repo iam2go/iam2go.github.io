@@ -1,10 +1,19 @@
 import * as React from "react"
 import { Link } from "gatsby"
 import { Tag, TagBox } from "../Tag"
+import { GatsbyImage, getImage, StaticImage } from "gatsby-plugin-image"
 
 const PostBlock = ({ slug, post }) => {
+  const image = getImage(post?.thumbnail?.childImageSharp?.gatsbyImageData)
   return (
-    <li className="bg-background-sub min-h-[12rem] rounded-xl p-8 my-8">
+    <li className="bg-background-sub min-h-[12rem] rounded-xl p-8 my-8 flex">
+      {image && (
+        <GatsbyImage
+          image={image}
+          alt={post.title}
+          className="w-56 rounded-lg mr-10"
+        />
+      )}
       <article
         className="post-list-item"
         itemScope
