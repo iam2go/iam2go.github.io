@@ -6,7 +6,6 @@ import Seo from "../components/seo"
 
 import "../styles/global.css"
 import "../styles/posting.css"
-import { Tag, TagBox } from "../components/Tag"
 import PostBlock from "../components/Post/PostBlock"
 
 const BlogIndex = ({ data, location }) => {
@@ -17,11 +16,9 @@ const BlogIndex = ({ data, location }) => {
     return (
       <Layout location={location} title={siteTitle}>
         {/* <Bio /> */}
-        <p>
-          No blog posts found. Add markdown posts to "content/blog" (or the
-          directory you specified for the "gatsby-source-filesystem" plugin in
-          gatsby-config.js).
-        </p>
+        <div className="w-2/3 mx-auto text-center my-32 text-text-default">
+          게시글이 없습니다😥
+        </div>
       </Layout>
     )
   }

@@ -7,6 +7,16 @@ const TagsPage = ({ data, location }) => {
   const siteTitle = data.site.siteMetadata?.title || `Title`
   const tags = data.tags.distinct
 
+  if (tags.length === 0) {
+    return (
+      <Layout location={location} title={siteTitle}>
+        <div className="w-2/3 mx-auto text-center my-32 text-text-default">
+          태그가 존재하지 않습니다😥
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout location={location} title={siteTitle}>
       <div className="w-2/3 flex gap-1.5 flex-wrap justify-center mx-auto my-40">
