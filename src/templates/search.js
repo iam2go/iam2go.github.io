@@ -3,6 +3,7 @@ import Layout from "../components/layout"
 import { graphql } from "gatsby"
 import PostBlock from "../components/Post/PostBlock"
 import { FaTags, FaListUl } from "react-icons/fa6"
+import Seo from "../components/seo"
 
 const SearchTemplate = ({ data, location, pageContext }) => {
   const siteTitle = data?.site.siteMetadata?.title || `Title`
@@ -29,6 +30,8 @@ const SearchTemplate = ({ data, location, pageContext }) => {
   )
 }
 export default SearchTemplate
+
+export const Head = ({ pageContext }) => <Seo title={pageContext.value} />
 
 export const pageQuery = graphql`
   query ($value: String) {

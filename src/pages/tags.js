@@ -2,6 +2,7 @@ import * as React from "react"
 import { graphql, navigate } from "gatsby"
 import Layout from "../components/layout"
 import { Tag } from "../components/Tag"
+import Seo from "../components/seo"
 
 const TagsPage = ({ data, location }) => {
   const siteTitle = data.site.siteMetadata?.title || `Title`
@@ -32,6 +33,8 @@ const TagsPage = ({ data, location }) => {
 }
 
 export default TagsPage
+
+export const Head = () => <Seo title="Tags" />
 
 export const pageQuery = graphql`
   query {
