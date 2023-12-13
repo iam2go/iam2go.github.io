@@ -2,7 +2,7 @@ import * as React from "react"
 import Layout from "../components/layout"
 import { graphql } from "gatsby"
 import PostBlock from "../components/Post/PostBlock"
-import { FaTags, FaListUl } from "react-icons/fa6"
+import { FaTags } from "@react-icons/all-files/fa/FaTags"
 import Seo from "../components/seo"
 
 const SearchTemplate = ({ data, location, pageContext }) => {

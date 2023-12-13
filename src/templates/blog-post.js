@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Link, graphql } from "gatsby"
-import { FaAngleRight, FaAngleLeft } from "react-icons/fa6"
+import { HiChevronRight } from "@react-icons/all-files/hi/HiChevronRight"
+import { HiChevronLeft } from "@react-icons/all-files/hi/HiChevronLeft"
 import { MDXProvider } from "@mdx-js/react"
 import Layout from "../components/layout"
 import Seo from "../components/seo"
@@ -56,7 +57,7 @@ const BlogPostTemplate = ({
           {previous && (
             <Link to={previous.fields.slug} rel="prev">
               <li className="bg-background-primary/50 text-sm p-3 rounded-xl h-fit flex items-center gap-3">
-                <FaAngleLeft size={22} className="text-accent-default" />
+                <HiChevronLeft size={22} className="text-accent-default" />
                 <p className="max-w-[28rem]">{previous.frontmatter.title}</p>
               </li>
             </Link>
@@ -65,7 +66,7 @@ const BlogPostTemplate = ({
             <Link to={next.fields.slug} rel="next">
               <li className="bg-background-primary/50 text-sm p-3 rounded-xl h-fit flex items-center gap-3">
                 <p className="max-w-[28rem]">{next.frontmatter.title}</p>
-                <FaAngleRight size={22} className="text-accent-default" />
+                <HiChevronRight size={22} className="text-accent-default" />
               </li>
             </Link>
           )}

@@ -18,6 +18,13 @@ module.exports = {
     siteUrl: `https://gatsbystarterblogsource.gatsbyjs.io/`,
   },
   plugins: [
+    {
+      resolve: "gatsby-plugin-webpack-bundle-analyser-v2",
+      options: {
+        devMode: true,
+      },
+    },
+
     `gatsby-plugin-postcss`,
     {
       resolve: `gatsby-plugin-webfonts`,
