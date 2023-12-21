@@ -14,8 +14,8 @@ module.exports = {
       name: `leego`,
       summary: `하루를 기록합니다`,
     },
-    description: `A starter blog demonstrating what Gatsby can do.`,
-    siteUrl: `https://gatsbystarterblogsource.gatsbyjs.io/`,
+    description: `개발 블로그`,
+    siteUrl: `https://github.com/iam2go/iam2go.github.io/`,
   },
   plugins: [
     {
