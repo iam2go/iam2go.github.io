@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Link } from "gatsby"
 import { Tag, TagBox } from "../Tag"
-import { GatsbyImage, getImage, StaticImage } from "gatsby-plugin-image"
+import { GatsbyImage, getImage } from "gatsby-plugin-image"
 
 const PostBlock = ({ slug, post }) => {
   const image = getImage(post?.thumbnail?.childImageSharp?.gatsbyImageData)

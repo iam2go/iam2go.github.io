@@ -1,4 +1,4 @@
-import { Link, navigate } from "gatsby"
+import { Link } from "gatsby"
 import React from "react"
 const TagBox = ({ children }) => {
   return <div className="flex gap-1.5 my-3 flex-wrap">{children}</div>

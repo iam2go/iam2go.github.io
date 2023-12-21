@@ -4,9 +4,6 @@ import { StaticImage } from "gatsby-plugin-image"
 import NavBar from "./NavBar"
 
 const Header = ({ location, title }) => {
-  // const rootPath = `${__PATH_PREFIX__}/`
-  // const isRootPath = location.pathname === rootPath
-
   return (
     <div className="bg-background-sub/50 left-0 w-full h-48 sticky top-[-8rem] backdrop-blur-sm">
       <div className="h-48 max-w-5xl  mx-auto flex flex-col justify-center items-center gap-3 relative">

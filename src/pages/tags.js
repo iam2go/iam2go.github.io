@@ -1,5 +1,5 @@
 import * as React from "react"
-import { graphql, navigate } from "gatsby"
+import { graphql } from "gatsby"
 import Layout from "../components/layout"
 import { Tag } from "../components/Tag"
 import Seo from "../components/seo"
