@@ -15,7 +15,7 @@ module.exports = {
       summary: `하루를 기록합니다`,
     },
     description: `개발 블로그`,
-    siteUrl: `https://github.com/iam2go/iam2go.github.io/`,
+    siteUrl: `https://iam2go.github.io/`,
   },
   plugins: [
     {
@@ -125,7 +125,6 @@ module.exports = {
               allMdx(sort: {frontmatter: {date: DESC}}) {
                 nodes {
                   excerpt
-                  html
                   fields {
                     slug
                   }
@@ -134,7 +133,11 @@ module.exports = {
                     date
                     description
                     tags
-                    thumbnail
+                    thumbnail{
+                      childImageSharp {
+                        gatsbyImageData(width: 400)
+                      }
+                    }
                   }
                 }
               }
