@@ -9,6 +9,9 @@ import { Tag, TagBox } from "../components/Tag"
 import { CodeBlock } from "../components/Block/CodeBlock"
 
 const components = {
+  img: ({ src, alt }) => (
+    <img src={src} alt={alt} className="m-auto md:w-3/4" />
+  ),
   pre: CodeBlock,
   code: props => (
     <code
