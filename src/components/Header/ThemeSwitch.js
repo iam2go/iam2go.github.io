@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useState } from "react"
 import { IoMdMoon } from "@react-icons/all-files/io/IoMdMoon"
 import { HiSun } from "@react-icons/all-files/hi/HiSun"
 const ThemeSwitch = () => {
-  const [theme, setTheme] = useState("light")
+  const [theme, setTheme] = useState(
+    typeof window === "object" ? window.__theme : "light"
+  )
 
   const toggle = useCallback(() => {
     const updatedTheme = theme === "light" ? "dark" : "light"
-    setTheme(updatedTheme)
+    // setTheme(updatedTheme)
     window.__setPreferredTheme(updatedTheme)
   }, [theme])
 
