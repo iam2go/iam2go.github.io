@@ -4,7 +4,8 @@ import { Tag, TagBox } from "../Tag"
 import { GatsbyImage, getImage } from "gatsby-plugin-image"
 
 const PostBlock = ({ slug, post }) => {
-  const image = getImage(post?.thumbnail?.childImageSharp?.gatsbyImageData)
+  const image = getImage(post.thumbnail)
+
   return (
     <li className="bg-background-sub min-h-[12rem] rounded-xl p-8 my-8 flex">
       {image && (
