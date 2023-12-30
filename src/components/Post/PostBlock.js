@@ -7,12 +7,12 @@ const PostBlock = ({ slug, post }) => {
   const image = getImage(post.thumbnail)
 
   return (
-    <li className="bg-background-sub min-h-[12rem] rounded-xl p-8 my-8 flex">
+    <li className="bg-background-sub min-h-[12rem] rounded-xl p-5 md:p-8 my-8 flex flex-col md:flex-row">
       {image && (
         <GatsbyImage
           image={image}
           alt={post.title}
-          className="w-56 rounded-lg mr-10"
+          className="w-100p md:w-56 rounded-lg mb-5 md:mb-0 md:mr-10"
         />
       )}
       <article
@@ -34,7 +34,7 @@ const PostBlock = ({ slug, post }) => {
             />
           ))}
         </TagBox>
-        <div className="text-text-default text-sm  font-light my-5  line-clamp-2">
+        <div className="text-text-default text-sm  font-light my-1 md:my-5  line-clamp-2">
           <p
             dangerouslySetInnerHTML={{
               __html: post.description || post.excerpt,
