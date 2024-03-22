@@ -5,7 +5,7 @@ import NavBar from "./NavBar"
 
 const Header = ({ location, title }) => {
   return (
-    <div className="bg-background-sub/50 left-0 w-full h-48 sticky top-[-8rem] backdrop-blur-sm">
+    <div className="bg-background-sub/50 left-0 w-full h-48 sticky top-[-8rem] backdrop-blur-sm z-10">
       <div className="h-48 max-w-5xl  mx-auto flex flex-col justify-center items-center gap-3 relative">
         <StaticImage
           className="bio-avatar justify-center rounded-full"

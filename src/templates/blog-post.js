@@ -7,6 +7,7 @@ import Layout from "../components/layout"
 import Seo from "../components/seo"
 import { Tag, TagBox } from "../components/Tag"
 import { CodeBlock } from "../components/Block/CodeBlock"
+import TableOfContents from "../components/TableOfContents/TableOfContents"
 
 const components = {
   img: ({ src, alt }) => (
@@ -75,6 +76,7 @@ const BlogPostTemplate = ({
           )}
         </ul>
       </nav>
+      <TableOfContents contents={post.tableOfContents} />
     </Layout>
   )
 }
@@ -104,6 +106,7 @@ export const pageQuery = graphql`
     mdx(id: { eq: $id }) {
       id
       excerpt(pruneLength: 160)
+      tableOfContents
       frontmatter {
         title
         date(formatString: "YYYY.MM.DD")

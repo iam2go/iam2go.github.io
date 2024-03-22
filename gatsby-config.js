@@ -68,6 +68,15 @@ module.exports = {
         extensions: [".mdx", ".md"],
         gatsbyRemarkPlugins: [
           {
+            resolve: `gatsby-remark-autolink-headers`,
+            options: {
+              maintainCase: false,
+              icon: `<div>#</div>`,
+              removeAccents: true,
+              elements: [`h1`, `h2`, `h3`],
+            },
+          },
+          {
             resolve: `gatsby-remark-images`,
             options: {
               maxWidth: 630,
@@ -134,6 +143,7 @@ module.exports = {
                   fields {
                     slug
                   }
+                  tableOfContents
                   frontmatter {
                     title
                     date

@@ -143,6 +143,7 @@ exports.createSchemaCustomization = ({ actions }) => {
     type Mdx implements Node {
       frontmatter: Frontmatter
       fields: Fields
+      tableOfContents: JSON
     }
 
     type Frontmatter {
