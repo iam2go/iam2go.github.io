@@ -15,6 +15,7 @@
     "classnames": "^2.3.2",
     "gatsby": "^5.11.0",
     "gatsby-plugin-feed": "^5.11.0",
+    "gatsby-plugin-google-gtag": "^5.13.1",
     "gatsby-plugin-image": "^3.11.0",
     "gatsby-plugin-manifest": "^5.11.0",
     "gatsby-plugin-mdx": "^5.12.3",

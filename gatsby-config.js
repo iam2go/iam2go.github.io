@@ -24,7 +24,12 @@ module.exports = {
         devMode: true,
       },
     },
-
+    {
+      resolve: "gatsby-plugin-google-gtag",
+      options: {
+        trackingIds: ["G-Y7S8Y7C15Y"],
+      },
+    },
     `gatsby-plugin-postcss`,
     {
       resolve: `gatsby-plugin-webfonts`,
