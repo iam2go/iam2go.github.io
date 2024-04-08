@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react"
 import Giscus from "@giscus/react"
 
 const Comment = () => {
-  const [theme, setTheme] = useState(window?.__theme || "light")
+  const [theme, setTheme] = useState(
+    (typeof window === "object" && window.__theme) || "light"
+  )
   useEffect(() => {
     const handleThemeChange = () => {
       setTheme(prev => (prev === "light" ? "dark" : "light"))
