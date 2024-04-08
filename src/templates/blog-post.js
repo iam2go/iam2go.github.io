@@ -7,6 +7,7 @@ import Layout from "../components/layout"
 import Seo from "../components/seo"
 import { Tag, TagBox } from "../components/Tag"
 import { CodeBlock } from "../components/Block/CodeBlock"
+import Comment from "../components/Post/Comment"
 import TableOfContents from "../components/TableOfContents/TableOfContents"
 
 const components = {
@@ -54,6 +55,7 @@ const BlogPostTemplate = ({
           ))}
         </TagBox>
         <hr className="my-10" />
+        <Comment />
         <footer></footer>
       </article>
       <nav className="blog-post-nav px-8">

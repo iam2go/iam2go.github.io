@@ -8,7 +8,10 @@ const ThemeSwitch = () => {
 
   const toggle = useCallback(() => {
     const updatedTheme = theme === "light" ? "dark" : "light"
-    // setTheme(updatedTheme)
+
+    const themeChangeEvent = new Event("themeChange")
+    window.dispatchEvent(themeChangeEvent)
+
     window.__setPreferredTheme(updatedTheme)
   }, [theme])
 
