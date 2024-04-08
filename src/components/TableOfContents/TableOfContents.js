@@ -48,7 +48,7 @@ const TableOfContents = ({ contents }) => {
     )
   }
 
-  const getHeaderTitle = contents => {
+  const getHeaderTitle = (contents = []) => {
     return contents.reduce((titles, content) => {
       if (content.url) {
         titles.push(content.url.slice(1))
@@ -61,12 +61,12 @@ const TableOfContents = ({ contents }) => {
     }, [])
   }
 
-  const headerList = getHeaderTitle(contents.items)
+  const headerList = getHeaderTitle(contents?.items)
   const activeHeader = useActiveId(headerList)
   return (
     <div className="hidden xl:block absolute top-28 bottom-0 left-full w-52 text-sm pl-2">
       <ul className="sticky top-28">
-        {contents.items.map(item => renderList(item, 0, activeHeader))}
+        {contents?.items.map(item => renderList(item, 0, activeHeader))}
       </ul>
     </div>
   )
