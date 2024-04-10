@@ -58,15 +58,17 @@ const BlogPostTemplate = ({
         <Comment />
         <footer></footer>
       </article>
-      <nav className="blog-post-nav px-8">
+      <nav className="blog-post-nav px-8 mt-8">
         <ul className="flex flex-wrap justify-between list-none p-0 text-text-default">
-          {previous && (
+          {previous ? (
             <Link to={previous.fields.slug} rel="prev">
               <li className="bg-background-primary/50 text-sm p-3 rounded-xl h-fit flex items-center gap-3">
                 <HiChevronLeft size={22} className="text-accent-default" />
                 <p className="max-w-[28rem]">{previous.frontmatter.title}</p>
               </li>
             </Link>
+          ) : (
+            <div></div>
           )}
           {next && (
             <Link to={next.fields.slug} rel="next">
