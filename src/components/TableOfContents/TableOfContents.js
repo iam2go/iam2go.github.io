@@ -10,6 +10,10 @@ const indent = {
 
 const TableOfContents = ({ contents }) => {
   const renderList = (item, depth = 0, activeHeader) => {
+    const hasActiveChild = item.items?.some(
+      child => activeHeader === child.url.slice(1)
+    )
+    const isActive = activeHeader === item.url.slice(1) || hasActiveChild
     return (
       <>
         <li
@@ -17,10 +21,14 @@ const TableOfContents = ({ contents }) => {
           className={`transition-colors tracking-tight leading-6 ${
             indent[`h${depth + 1}`]
           } ${
-            activeHeader === item.url.slice(1)
+            isActive
               ? "text-accent-default font-semibold"
               : "text-text-default/60"
-          } ${depth === 0 ? "font-medium mt-2" : "fogitnt-normal mt-1"}`}
+          } ${
+            depth === 0
+              ? "font-medium mt-[0.3rem]"
+              : "fogitnt-normal mt-[0.1rem]"
+          }`}
         >
           <Link to={item.url} className="flex items-start">
             {depth > 0 && (
@@ -42,8 +50,8 @@ const TableOfContents = ({ contents }) => {
             {item.title}
           </Link>
         </li>
-        {item?.items &&
-          item.items.map(child => renderList(child, depth + 1, activeHeader))}
+        {isActive &&
+          item.items?.map(child => renderList(child, depth + 1, activeHeader))}
       </>
     )
   }
