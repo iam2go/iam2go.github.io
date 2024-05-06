@@ -1,0 +1,574 @@
+---
+title: react-query는 어떻게 작동할까
+date: "2023-06-19"
+tags: [react, react-query]
+description:  react-query는 어떤 구조를 가지고 있으며 어떻게 동작할까? 구조 파헤쳐보기
+thumbnail: "./images/react-query.jpeg"
+---
+
+# QueryClient
+
+react-query를 프로젝트에 셋팅할 때, 가장 먼저 하는 것은 앱의 최상위에서 `QueryClientProvider`로 우리의 앱을 감싸주는 일이다.
+
+```
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+...
+
+const queryClient = new QueryClient();
+
+function Root() {
+  return (
+        <QueryClientProvider client={queryClient}>
+            <App />
+        </QueryClientProvider>
+  );
+}
+```
+
+우리는 먼저 새로운 `QueryClient`인스턴스를 생성하고, `QueryClientProvider`를 통해 앱 전체에서 생성한 `QueryClient`에 접근 가능하도록 해준다.
+
+이 `QueryClient`는 단순하게 표현하자면 `QueryCache`와 `MutationCache`를 담는 그릇이다. 우리는 대부분의 경우에 직접 `QueryCache`에 접근하기보다, `QueryClient`를 통해 `QueryCache`와 `MutationCache`에 접근한다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FceNUPV%2Fbtsak9GTTBJ%2Fkayd2JfAISPXslo0C568U1%2Fimg.jpg"
+    width="282"
+    className="m-auto"
+  />
+
+`QueryClientProvider`를 통해 내려준 `queryClient`에 접근하기 위해서는 `useQueryClient`를 사용한다.
+
+```
+const queryClient = useQueryClient();
+```
+<br/>
+
+이렇게 가져온 `queryClient`객체를 `console`에 찍어보면 내부 구조를 볼 수 있다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FblQGgn%2FbtsayVgIboL%2Ft8Yzl5dYc2Q3smuFcsTIL0%2Fimg.png"
+    width="695"
+    className="m-auto"
+  />
+
+
+
+```
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 20000
+    }
+  }
+});
+```
+
+만약 위와 같이 `QueryClient` 객체를 생성하면서 `defaultOption`을 설정해줬다면, 해당 객체에 잘 들어가 있는 것을 확인할 수 있다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbtzOGA%2FbtsajdJ9NfX%2FXayNAnkAJIrvIHrZwnGebK%2Fimg.png"
+    width="369"
+    className="m-auto"
+  />
+
+
+
+<br/>  
+<br/>  
+# QueryCache
+
+위에서 살펴본 `QueryClient`객체 안에는 QueryCache가 존재한다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2Fb3SW2I%2FbtsaEhX1n8r%2FlzaeL41GQjOAdi7KY5qXJ1%2Fimg.png"
+    width="546"
+    className="m-auto"
+  />
+
+
+`QueryCache`는 javascript 객체다.
+
+```
+export class QueryCache extends Subscribable<QueryCacheListener> {
+
+  private queries: Query<any, any, any, any>[];
+  private queriesMap: QueryHashMap;
+...
+
+add(query: Query<any, any, any, any>): void {
+    if (!this.queriesMap[query.queryHash]) {
+      this.queriesMap[query.queryHash] = query
+      this.queries.push(query)
+      this.notify({
+        type: 'added',
+        query,
+      })
+    }
+  }
+}
+```
+
+우리가 Query를 생성하면, `queryHash`를 객체의 key로,
+query 인스턴스를 값으로 넣어준다.
+
+그리고 `queries` 라는 배열에 query 인스턴스를 추가한다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FXME6Q%2Fbtsaw8UFEBT%2F6lDIT6g0i0BgsbC2IrXQIK%2Fimg.png"
+    width="700"
+    className="m-auto"
+  />
+여기서 `queryHash`는 query key를 stringify한 값이다.
+
+```
+/**
+ * Default query keys hash function.
+ * Hashes the value into a stable hash.
+ */
+export function hashQueryKey(queryKey: QueryKey): string {
+  return JSON.stringify(queryKey, (_, val) =>
+    isPlainObject(val)
+      ? Object.keys(val)
+          .sort()
+          .reduce((result, key) => {
+            result[key] = val[key]
+            return result
+          }, {} as any)
+      : val,
+  )
+}
+```
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2Fciw2GB%2Fbtsak3AcP1G%2FyIox0sBFqd6jipKpJjgFw1%2Fimg.png"
+    width="385"
+    className="m-auto"
+  />
+따라서 우리는 query 생성시 반드시 query key로 유니크한 값을 지정해주어야 한다.
+
+
+
+<br/>
+<br/>
+
+# Query
+
+`QueryCache`의 value로 Query 객체 안에는 Query의 모든 정보들이 들어있다.
+
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2Fq2gPN%2Fbtsai557puT%2Ff50BoPHIz8vYAxKc2ajYek%2Fimg.png"
+    width="665"
+    className="m-auto"
+  />
+`cache`에 자신이 위치한 `QueryCache`정보를 가지고 있으며, `observers`라는 배열도 가지고 있다.
+
+이 `observers`에는 `QueryObserver`가 담긴다. `Query`는 `Observer`를 통해 누가 자신을 구독했는지 알고, `Observer`를 통해 모든 변경사항을 알릴 수 있다.
+
+
+<br/>
+<br/>
+# QueryObserver
+
+`useQuery호출 시` `Observer`가 생성된다. 이 `Observer`를 통해 `Query`와 컴포넌트가 연결된다.
+
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FdQJ1uj%2FbtsaJVAnGCZ%2FAWAk7PUVHYWPVlp7IT6Ygk%2Fimg.jpg"
+    width="265"
+    className="m-auto"
+  />
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FECpGH%2FbtsakftRfS8%2F3lWp6zMtQnNn1PhhZ30JmK%2Fimg.png"
+    width="600"
+    className="m-auto"
+  />
+
+Observer에는 QueryClient객체를 비롯하여 현재 Query, 랜더링 유발 여부를 파악하기 위한 현재 결과값 등이 담겨있다.
+
+
+<br/>
+<br/>
+# useQuery 호출 시 일어나는 일
+
+`useQuery`를 호출하고 `QueryCache`에서 데이터를 가져오는 과정을 살펴보자.
+
+`Observer`를 생성하고, `queryCache`에서 데이터를 가져오는 핵심 로직은 모두 `useBaseQuery`에 존재한다.
+useQuery, useQueries, useInfiniteQuery는 모두 `useBaseQuery`를 감싼 custom hook이다.
+
+<br/>
+`useBaseQuery`의 구조를 살펴보자.
+
+```
+export function useBaseQuery<
+  TQueryFnData,
+  TError,
+  TData,
+  TQueryData,
+  TQueryKey extends QueryKey,
+>(
+  options: UseBaseQueryOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryData,
+    TQueryKey
+  >,
+  Observer: typeof QueryObserver,
+) {
+  const queryClient = useQueryClient({ context: options.context })
+...
+  const [observer] = React.useState(
+    () =>
+      new Observer<TQueryFnData, TError, TData, TQueryData, TQueryKey>(
+        queryClient,
+        defaultedOptions,
+      ),
+  )
+
+  const result = observer.getOptimisticResult(defaultedOptions)
+
+ return result;
+```
+
+<br/>
+```
+// useBaseQuery.ts
+
+const queryClient = useQueryClient({ context: options.context })
+```
+
+`useBaseQuery` 호출 시 가장 먼저 하는 일은 `QueryClient` 객체를 가져오는 일이다.
+
+<br/>
+<br/>
+
+## observer 생성
+
+```
+// useBaseQuery.ts
+
+const [observer] = React.useState(
+    () =>
+      new Observer<TQueryFnData, TError, TData, TQueryData, TQueryKey>(
+        queryClient,
+        defaultedOptions,
+      ),
+  )
+```
+
+그 이후 `observer`를 생성한다. 위에서 가져온 `queryClient`와 `useQuery호출 시` 넣어준 `key`를 포함한 옵션값을 넣어준다. 이 `observer` 는 `useState`를 통해 생성되었으므로, `useQuery`를 호출한 컴포넌트가 `unmount` 되면 사라진다.
+
+```
+// queryObserver.ts
+
+constructor(
+    client: QueryClient,
+    options: QueryObserverOptions<
+      TQueryFnData,
+      TError,
+      TData,
+      TQueryData,
+      TQueryKey
+    >,
+  ) {
+    super()
+
+    this.client = client
+    this.options = options
+    this.trackedProps = new Set()
+    this.selectError = null
+    this.bindMethods()
+    this.setOptions(options)
+  }
+```
+
+`Observer` 가 생성되면 `setOptions`를 실행한다.
+
+```
+// queryObserver.ts
+
+setOptions(options?: QueryObserverOptions<
+      TQueryFnData,
+      TError,
+      TData,
+      TQueryData,
+      TQueryKey
+    >,
+    notifyOptions?: NotifyOptions,
+  ): void {
+    const prevOptions = this.options
+    const prevQuery = this.currentQuery
+
+    this.options = this.client.defaultQueryOptions(options)
+
+this.updateQuery();
+
+...
+this.updateResult(notifyOptions);
+
+}
+```
+
+`setOptions` 은 `updateQuery` 와 `updateResult` 를 실행하는데,  `updateQuery` 를 좀 더 자세히 살펴보자.
+
+```
+// queryObserver.ts
+
+private updateQuery(): void {
+    const query = this.client.getQueryCache().build(this.client, this.options)
+
+    if (query === this.currentQuery) {
+      return
+    }
+
+    const prevQuery = this.currentQuery as
+      | Query<TQueryFnData, TError, TQueryData, TQueryKey>
+      | undefined
+    this.currentQuery = query
+    this.currentQueryInitialState = query.state
+    this.previousQueryResult = this.currentResult
+
+    if (this.hasListeners()) {
+      prevQuery?.removeObserver(this)
+      query.addObserver(this)
+    }
+  }
+```
+
+대략적으로 코드를 훑어보면, `options`을 가진 `Query` 객체를 `queryCache`에서 찾은 후 해당 `Query` 가 가지고 있는 결과값을 리턴한다는 것을 추측해 볼 수 있다. 
+
+하지만 여기까지의 과정에서 우리는 아직 `Query`가 생성되지 않았다는 것을 떠올려야 한다.
+
+<br/>
+<br/>
+## Query 생성
+
+`this.client.getQueryCache().build(this.client, this.options)`를 좀 더 들여다보자.
+
+```
+// queryCache.ts
+
+build<TQueryFnData, TError, TData, TQueryKey extends QueryKey>(
+    client: QueryClient,
+    options: QueryOptions<TQueryFnData, TError, TData, TQueryKey>,
+    state?: QueryState<TData, TError>,
+  ): Query<TQueryFnData, TError, TData, TQueryKey> {
+    const queryKey = options.queryKey!
+    const queryHash =
+      options.queryHash ?? hashQueryKeyByOptions(queryKey, options)
+    let query = this.get<TQueryFnData, TError, TData, TQueryKey>(queryHash)
+
+    if (!query) {
+      query = new Query({
+        cache: this,
+        logger: client.getLogger(),
+        queryKey,
+        queryHash,
+        options: client.defaultQueryOptions(options),
+        state,
+        defaultOptions: client.getQueryDefaults(queryKey),
+      })
+      this.add(query)
+    }
+
+    return query
+  }
+```
+
+`Query` 의 생성은 `QueryCache` 의 `build` 매서드에서 이뤄진다.
+
+1.  `queryKey` 를 stringify해서 `queryHash` 를 생성
+2.  `QueryCache` 에서 해당 key를 가진 `query`가 있는지 확인
+3.  없다면 새로운 `query` 생성
+
+이제 `Query`가 생성되어 `cache`에 들어있게 되었다.
+
+생성한 `Query`를 return해준다.
+
+<br/>
+
+다시 `updateQuery`로 돌아가보면, 이제 `query`에 막 생성한 `Query` 인스턴스가 담겨있게된다.
+
+이 `Query`의 정보를 `Observer`에 저장해두고 만약 다시 `updateQuery`가 호출되면 새로운 `Query`와 비교해서 새로운 `Query` 정보로 업데이트 해준다.
+
+```
+// queryObserver.ts
+
+private updateQuery(): void {
+    const query = this.client.getQueryCache().build(this.client, this.options)
+    
+	...
+    
+ 	this.currentQuery = query
+ 	this.currentQueryInitialState = query.state
+    
+ 	...
+    
+}
+```
+
+<br/>
+
+다음은 `result`에 결과값들을 넣어준다.
+
+```
+// useBaseQuery.ts
+
+const result = observer.getOptimisticResult(defaultedOptions)
+```
+
+```
+// queryObserver.ts
+
+getOptimisticResult(
+    options: DefaultedQueryObserverOptions<
+      TQueryFnData,
+      TError,
+      TData,
+      TQueryData,
+      TQueryKey
+    >,
+  ): QueryObserverResult<TData, TError> {
+    const query = this.client.getQueryCache().build(this.client, options)
+
+    return this.createResult(query, options)
+  }
+```
+
+바로 위에서 알아봤듯, `const query = this.client.getQueryCache().build(this.client, options)`은 `options`에 해당하는 `Query`를 반환하고, 없으면 `Query`를 새로 생성한다.
+
+`createResult`는 함수명 그대로 사용자가 설정한 옵션에 따라
+ `Query`가 가진 데이터를 비롯한 `isLoading`, `isStale`, `status` 등의 상태 값을 리턴해준다.
+
+```
+// queryObserver.ts
+
+	protected createResult(
+        query: Query<TQueryFnData, TError, TQueryData, TQueryKey>,
+        options: QueryObserverOptions<
+          TQueryFnData,
+          TError,
+          TData,
+          TQueryData,
+          TQueryKey
+        >,
+      ): QueryObserverResult<TData, TError> {
+  
+      ...
+        const result: QueryObserverBaseResult<TData, TError> = {
+          status,
+          fetchStatus,
+          isLoading,
+          isSuccess: status === 'success',
+          isError,
+          isInitialLoading: isLoading && isFetching,
+          data,
+          dataUpdatedAt,
+          error,
+          errorUpdatedAt,
+          failureCount: state.fetchFailureCount,
+          failureReason: state.fetchFailureReason,
+          errorUpdateCount: state.errorUpdateCount,
+          isFetched: state.dataUpdateCount > 0 || state.errorUpdateCount > 0,
+          isFetchedAfterMount:
+            state.dataUpdateCount > queryInitialState.dataUpdateCount ||
+            state.errorUpdateCount > queryInitialState.errorUpdateCount,
+          isFetching,
+          isRefetching: isFetching && !isLoading,
+          isLoadingError: isError && state.dataUpdatedAt === 0,
+          isPaused: fetchStatus === 'paused',
+          isPlaceholderData,
+          isPreviousData,
+          isRefetchError: isError && state.dataUpdatedAt !== 0,
+          isStale: isStale(query, options),
+          refetch: this.refetch,
+          remove: this.remove,
+        }
+
+        return result as QueryObserverResult<TData, TError>
+  }
+```
+
+<br/>
+<br/>
+## 결과값 리턴
+
+이제 마지막 줄이다.
+
+```
+// useBaseQuery.ts
+
+// Handle result property usage tracking
+return !defaultedOptions.notifyOnChangeProps
+    ? observer.trackResult(result)
+    : result
+```
+
+v3까지는 `notifyOnChangeProps` 을 `'tracked'` 로 설정해야 실제 사용하고 있는 속성이 변경되는 경우에만 리렌더링을 해주었다. 하지만 v4에서는 이 설정이 기본값이 되었다.
+
+```
+trackResult(
+    result: QueryObserverResult<TData, TError>,
+  ): QueryObserverResult<TData, TError> {
+    const trackedResult = {} as QueryObserverResult<TData, TError>
+
+    Object.keys(result).forEach((key) => {
+      Object.defineProperty(trackedResult, key, {
+        configurable: false,
+        enumerable: true,
+        get: () => {
+          this.trackedProps.add(key as keyof QueryObserverResult)
+          return result[key as keyof QueryObserverResult]
+        },
+      })
+    })
+
+    return trackedResult
+  }
+```
+
+query에서 가져온 result는 `observer.trackResult` 를 통해 실제 사용하고 있는 속성들을 `trackedProps` 에 넣고 관리한다. `trackedProps`에 속한 속성들이 변경됐을때만 리랜더링을 발생시킨다.
+`notifyOnChangeProps`을 `‘all’` 로 해주면 v3의 기본 설정처럼 result에 포함된 모든 속성이 변경될 때마다 리렌더링을 야기한다.
+
+`useQuery`를 호출하면,
+`Observer`가 생성되고 `Query`를 생성한 후 `Query`의 `result`를 가져와 반환하는 과정을 알아보았다.
+
+하나의 `Query`에 대하여 `useQuery`는 여러번 호출될 수 있고, 이는 하나의 `Query`에 대하여 여러개의 `Observer`를 생성할 수 있다는 것을 의미한다.
+
+<br/>
+
+그렇다면 `observer`는 `Query`의 변화를 어렇게 알아챌까?
+
+```
+// useBaseQuery.ts
+
+useSyncExternalStore(
+    React.useCallback(
+      (onStoreChange) =>
+        isRestoring
+          ? () => undefined
+          : observer.subscribe(notifyManager.batchCalls(onStoreChange)),
+      [observer, isRestoring],
+    ),
+    () => observer.getCurrentResult(),
+    () => observer.getCurrentResult(),
+  )
+```
+
+모든 observer는 `useSyncExternalStore` 라는 hook를 통해 query 데이터의 변화를 감지한다.
+
+여기서 모든걸 다루게 되면 포스팅이 너무 길어지기 때문에, `useSyncExternalStore` 에 대해서는 다음 포스팅으로 넘기겠다.
+
+
+<br/>
+<br/>
+
+# 참고 📌
+
+[https://github.com/TanStack/query/blob/main/packages/react-query/src/useBaseQuery.ts](https://github.com/TanStack/query/blob/main/packages/react-query/src/useBaseQuery.ts)
+
+ [GitHub - TanStack/query](https://github.com/TanStack/query/blob/main/packages/react-query/src/useBaseQuery.ts)
+
+[https://tkdodo.eu/blog/inside-react-query](https://tkdodo.eu/blog/inside-react-query)
+
+ [Inside React Query](https://tkdodo.eu/blog/inside-react-query)

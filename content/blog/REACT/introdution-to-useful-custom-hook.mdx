@@ -1,0 +1,116 @@
+---
+title: 유용한 Custom hook 소개
+date: "2021-10-17"
+tags: [react, custom-hook]
+description: 프로젝트를 하면서 자주 사용하는 Custom hooks 모음
+thumbnail: "./images/react.png"
+---
+
+
+
+# usePrevious
+
+```
+import { useEffect, useRef } from 'react';
+
+function usePrevious(stateOrProp) {
+  const previous = useRef(null);
+
+  useEffect(() => {
+    previous.current = stateOrProp;
+  }, [stateOrProp]);
+
+  return previous.current;
+}
+
+export default usePrevious;
+```
+
+<br/>
+
+가끔 이전 state의 값이 필요할 때가 있다.
+
+예를 들어 `useEffect`는 deps에 명시한 값이 하나라도 변경되면 로직을 실행한다.
+
+```
+useEffect(() => {
+    ...
+    ...
+}, [ one, two, three, four ]);
+```
+<br/>
+
+이때 특정 state가 바뀔때만 `useEffect`를 실행하고 싶다면, `usePrevious`를 사용하여 이전 값과 현재 값을 비교하는 조건문을 추가해주면 된다.
+
+```
+const prevOne = usePrevious(one);
+
+useEffect(() => {
+    if(prevOne !== one){
+        ...
+         ...
+    }
+}, [ one, two, three, four ]);
+```
+ <br/>
+ <br/>
+
+# useUpdateEffect
+
+```
+import { useEffect, useRef } from 'react';
+
+function useUpdateEffect(callback, deps) {
+  const ref = useRef(false);
+
+  useEffect(() => {
+    if (ref.current) {
+      callback();
+    }else {
+      ref.current = true;
+    }
+  }, [...deps]);
+}
+
+export default useUpdateEffect;
+```
+
+deps에 추가한 state가 변경될 때마다 callback이 실행된다. 단, **최초 마운트 시에는 실행되지 않는다.**  
+`useEffect`와 동일하지만, 마운트 시에는 실행을 건너뛰고 싶을 때 유용하게 사용한다.
+
+
+<br/>
+<br/>
+
+# useOutSideClick
+
+```
+import { useEffect } from 'react';
+
+function useOutSideClick(ref, callback) {
+  useEffect(() => {
+    const handleClick = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) {
+        callback?.();
+      }
+    };
+
+    window.addEventListener('mousedown', handleClick);
+
+    return () => window.removeEventListener('mousedown', handleClick);
+  }, [ref, callback]);
+}
+
+export default useOutSideClick;
+```
+
+`ref`로 지정한 요소의 밖을 클릭했을 때의 이벤트 매서드를 정의할 때 사용한다.
+
+ <img
+    src="https://blog.kakaocdn.net/dn/dqsgjL/btrhVDmWYSK/zMFgyjKEkU5X8in6S5lVu0/img.gif"
+    width="200"
+    className="m-auto"
+  />
+
+
+위와 같이 생성된 메뉴 밖을 클릭하면 자동으로 메뉴창이 닫히는 기능을 구현할 때 유용하다. 

@@ -1,0 +1,522 @@
+---
+title: recoil을 사용한 전역 모달 관리(with TypeScript)
+date: "2023-10-02"
+tags: [react,recoil, modal]
+description: (아마도) modal 관리 마지막 시리즈. recoil로 모달 관리하는 방법
+thumbnail: "./images/recoil.png"
+---
+이전 포스팅에서 context API, redux를 사용한 모달 관리에 대해서 소개했었다.
+
+```
+// store/modalSlice.js
+
+import { createSlice } from "@reduxjs/toolkit";
+
+const initialState = [];
+
+export const modalSelector = (state) => state.modal;
+
+export const modalSlice = createSlice({
+  name: "modal",
+  initialState,
+  reducers: {
+    openModal: (state, action) => {
+      const { type, props } = action.payload;
+      return state.concat({ type, props });
+    },
+    closeModal: (state, action) => {
+      state.pop();
+    },
+  },
+});
+
+export const { openModal, closeModal } = modalSlice.actions;
+```
+
+모달이 닫히면 해당 모달의 상태는 리셋되기 때문에 굳이 `initalState` 의 모달 상태를 들고 있을 이유가 없다 판단했고, 현재 열려있는 모달의 상태만을 관리하는 방식을 선택했다.
+구체적으로는, `type` 과 `props` 를 가진 모달 객체를 배열에 차곡차곡 쌓아주고, 배열에 담긴 모달만을 랜더링 하는 방식으로 구현했다.
+
+최근 새로운 프로젝트의 초기 셋팅을 맡았는데, 이 프로젝트에 전역 상태 관리 라이브러리로 `recoil`을 도입해보기로 했다.
+
+`redux` 가 중앙집중식으로 상태를 관리했다면 `recoil` 은 `Atom` 이라는 작은 단위의 상태를 만들어 분산식으로 상태를 관리한다. 위에서 설명한 방식은 여러 모달 객체를 하나의 배열 안에 전부 가지고 있는 것이기 때문에 `recoil` 의 지향점과 맞지 않는다고 판단하여 다른 방식을 고려하게 되었다.
+
+(정확히는 기존의 모달 관리 로직의 큰 틀은 유지하되, 상태 관리 방식만 recoil에 맞춰 변경하기로 했다.)
+
+
+<br/>
+`recoil`의 지향점에 따른다면, 모달마다 상태를 저장하는 개별 atom을 가지고 있어야 하겠다.
+
+```
+const firstModalState = atom<Modal>({
+    key: "firstModal",
+    default: {
+    params: null
+  }
+});
+
+const secondModalState = atom<Modal>({
+    key: "secondeModal",
+    default: {
+    params: null
+  }
+});
+```
+
+하지만 이렇게 개별로 생성해줘야 한다면, 구조 변경이 번거롭고, 무엇보다 key관리가 힘들다. `recoil`에서는 이렇게 형태가 동일한 여러 개의 상태가 필요한 경우를 위해 `atomFamily`를 제공한다.
+
+
+<br/>
+<br/>
+# atomFamily
+
+`atomFamily`는 쉽게 말해 `atom`들의 모음이다. 기본적으로 매개변수를 받아 `atom`을 리턴하며 이때 리턴되는 `atom`은 독립적인 atom state를 가진다.
+
+```
+const modalState = atomFamily<Modal, string>({
+  key: 'modalState',
+  default: (id) => ({
+    id,
+    params: null
+  })
+```
+
+만약 상태를 구독한다면 아래와 같다.
+
+```
+const {isOpen, params} = useRecoilValue(madalState('first'));
+```
+
+`atomFamily`를 호출할 때 넣어주는 매개변수가 생성되는 `atom`의 고유한 key값이 되는 셈이다.
+
+각각의 모달 상태는 `atomFamily`를 통해 관리한다.
+
+<br/>
+
+`ModalContainer`에서 열려있는 모달만 랜더링해 줄 것이기 때문에, 열려있는 모달을 담은 배열이 추가로 필요하다.
+
+```
+export const modalListState = atom<string[]>({
+  key: 'modalListState',
+  default: []
+});
+```
+
+이 배열에는 모달의 `id`값만을 넣어준다.
+
+
+<br/>
+
+```
+// ModalContainer.ts
+
+const MODAL_COMPONENTS: Record<string, () => React.ReactElement> = {
+  test: TestModal,
+  test2: Test2Modal
+};
+
+function ModalContainer() {
+  const modalList = useRecoilValue(modalListState);
+  const renderModal = modalList.map((id) => {
+    const ModalComponent = MODAL_COMPONENTS[id];
+    return <ModalComponent key={id} />;
+  });
+  return createPortal(
+    <>
+      {renderModal}
+    </>,
+    document.getElementById('modal') as HTMLElement
+  );
+}
+
+export default ModalContainer;
+```
+
+`ModalContainer`는 기존과 크게 달라진 점은 없다.
+
+<br/>
+<br/>
+
+# selectorFamily
+
+`selctor`는 redux의 `reselect`와 유사하게 `atom`이나 다른 `selector`를 기반으로 파생된 상태를 만든다. 하지만 recoil의 `selector`는 `set` 매서드를 통해 값의 변경도 가능하다.
+
+`atomFamily`와 동일하게 `selectorFamily`는 `selector`의 모음으로, 매개변수를 받아 `selector`를 리턴한다.
+
+여기서는 `selectorFamily`를 통해 열려있는 모달 ID를 담은 `modalListState`와 각각의 모달 상태값을 담은 `modalState`를 동시에 관리해 줄 것이다.
+
+```
+export const modalSelector = selectorFamily<Modal, string>({
+  key: 'modalSelector',
+  get:
+    (id) => get(modalState(id)),
+  set:
+    (id) =>
+    ({ get, set, reset }, newValue) => {
+      if (newValue instanceof DefaultValue) {
+        set(modalListState, (prev) => prev.filter((modalId) => modalId !== id));
+        reset(modalState(id));
+        return;
+      }
+
+      set(modalState(id), newValue);
+
+      if (get(modalListState).find((id) => id === newValue.id)) return;
+      set(modalListState, (prev) => [...prev, newValue.id]);
+    }
+});
+```
+
+`get`을 통해 매개변수를 key값으로 하는 다이얼로그의 상태를 가져온다.
+
+`set`을 통해서는 새로운 상태값으로 업데이트해주거나, 상태를 리셋해 준다.
+
+`set`에서는 값을 업데이트할 때와 초기화할 때 모두 두 번째 매개변수인 `newValue`로 변경할 값을 받아온다.
+따라서 `newValue` 의 타입이 `DefaultValue` 인지를 확인하여 지금 값을 업데이트하는 상황인지, 초기화하는 상황인지를 판단해야 한다.
+
+```
+if (newValue instanceof DefaultValue) {
+       set(modalListState, (prev) => prev.filter((modalId) => modalId !== id));
+       reset(modalState(id));
+       return;
+}
+```
+
+`newValue` 의 타입이 `DefaultValue`라면 `useResetRecoilState` 를 통해 값을 초기화하는 상황이다.
+
+`modalListState` 에서 매개변수로 받은 id의 값을 제거해 준 후, 해당 모달의 상태를 reset 시켜준다.
+
+```
+set(modalState(id), newValue);
+
+if (get(modalListState).find((id) => id === newValue.id)) return;
+set(modalListState, (prev) => [...prev, newValue.id]);
+```
+
+값을 업데이트해주는 상황 즉, 모달을 여는 상황이라면
+
+먼저 새로운 값으로 모달의 상태를 업데이트해주고, `modalListState`에 id를 넣어준다.
+
+
+<br/>
+<br/>
+
+# useModal
+
+모달을 열고 닫는 로직을 공통으로 사용할 수 있도록 `useModal` 커스텀 훅을 만들어 주었다.
+
+<br/>
+
+`useModal` 구현시 두 가지 방식을 놓고 고민했었는데,
+
+1️. `useModal`호출시 모달의 `id`를 전달받아 해당 `id`를 가진 모달에 대한 매서드를 제공해 주는 방식과,
+
+2️. 하나의 `useModal` 훅이 여러 모달을 관리할 수 있도록 모달 관련 매서드만을 제공하고, 제공한 매서드를 호출할 때 `id`값을 넣어주는 방식이었다.
+
+
+<br/>
+먼저, 첫 번째 방식의 구현 코드는 아래와 같다.
+
+```
+import { modalSelector } from '@/recoil/modal';
+import { useCallback } from 'react';
+import { useRecoilState, useResetRecoilState } from 'recoil';
+
+function useModal(type) {
+  const [state, setState] = useRecoilState(modalSelector(id));
+  const closeModal = useResetRecoilState(modalSelector(id));
+
+  const handleOpenModal = useCallback(
+    (props = null) => {
+      setState({ id, params });
+    },
+    [type, setState]
+  );
+
+  return { state, open: handleOpenModal, close: closeModal };
+}
+
+export default useModal;
+```
+
+컴포넌트에서 사용할 때는 이 방식이 조금 더 코드가 간편하고 직관적이다.
+
+다만 만약 하나의 컴포넌트에서 여러 개의 모달을 호출할 경우
+
+```
+... 
+const testModal = useModal('test');
+const anotherModal = useModal('another');
+
+...
+
+testModal.open();
+anotherModal.open();
+```
+
+위와 같이 모달의 개수만큼 `useModal`을 호출해줘야 하는 단점이 있다.
+
+
+<br/>
+<br/>
+두 번째 방식은 `openModal` 과 `closeModal` 호출 시에 id를 받아서 상태를 설정하기 위해 `useRecoilCallback` 을 사용하여 직접 `set` 과 `reset` 함수를 다룬다.
+
+```
+import { Modal, ModalParams, modalSelector, ModalType } from '@/recoil/modal';
+import { useCallback } from 'react';
+import { useRecoilCallback } from 'recoil';
+
+function useModal() {
+  const setModal = useRecoilCallback(
+    ({ set }) =>
+      (id: string, value: Modal) => {
+        set(modalSelector(id), value);
+      },
+    []
+  );
+
+  const closeModal = useRecoilCallback(
+    ({ reset }) =>
+      (id: string) => {
+        reset(modalSelector(id));
+      },
+    []
+  );
+
+  const handleOpenModal = useCallback(
+    (id: string, params: ModalParams = null) => {
+            const value = {
+                id,
+                params
+            };
+      setModal(id, value);
+    },
+    [setModal]
+  );
+
+  return { openModal: handleOpenModal, closeModal };
+}
+
+export default useModal;
+```
+
+```
+const {openDialog, closeDialog} = useModal();
+
+... 
+
+openDialog('test');
+openDialog('another');
+```
+
+컴포넌트에서 사용 시에는 위와 같이 매서드를 호출할 때 id만 전달해 주면 된다.
+
+<br/>
+<br/>
+
+# 타입 엄격하게 설정하기
+
+## 모달 컴포넌트 메모이제이션 강제하기
+
+```
+// ModalContainer.ts
+
+const MODAL_COMPONENTS: Record<string, () => React.ReactElement> = {
+  test: TestModal,
+  test2: Test2Modal
+};
+
+function ModalContainer() {
+  const modalList = useRecoilValue(modalListState);
+  const renderModal = modalList.map((id) => {
+    const ModalComponent = MODAL_COMPONENTS[id];
+    return <ModalComponent key={id} />;
+  });
+  return createPortal(
+    <>
+      {renderModal}
+    </>,
+    document.getElementById('modal') as HTMLElement
+  );
+}
+
+export default ModalContainer;
+```
+
+`ModalContainer` 를 다시 살펴보면 `modalList`에 변경이 일어나는 경우 ModalComponent 전체가 리랜더링 된다. 이는 각 모달 컴포넌트를 `React.memo`로 메모이제이션 해주면 해결 가능하다.
+
+`React.memo` 로 메모이제이션 된 컴포넌트만 `MODAL_COMPONENTS` 에 추가될 수 있도록 `MODAL_COMPONENTS`타입을 변경해 주었다.
+
+```
+const MODAL_COMPONENTS: Record<string, React.MemoExoticComponent<() => React.ReactElement>> = {
+  test: TestModal,
+  test2: Test2Modal
+};
+```
+
+(현재 프로젝트에서는 각 모달 컴포넌트들이 복잡한 로직을 가지고 있기 때문에 위처럼 메모이제이션을 강제했지만, 그렇지 않은 경우에는 메모이제이션 여부를 자유롭게 설정할 수 있도록 하는 것이 더 바람직할 수 있다.)
+
+<br/>
+<br/>
+## 정의한 모달 ID만 사용하도록 타입 정의하기
+
+지금까지는 모달의 id 타입을 그냥 `'string'` 으로 정의했지만,
+
+`MODAL_COMPONENTS` 에 정의하지 않은 다이얼로그를 호출할 시에는 타입에러가 발생하도록 더 엄격한 타입정의가 필요했다.
+
+```
+type ModalKeys = keyof typeof MODAL_COMPONENTS;
+```
+
+위처럼 정의하면 해결될 것 같지만, 실제로는 `'string'` 타입이 되어버린다.
+
+이 문제는 typescript 4.9 버전부터 제공하는 `satisfies` 연산자를 사용하여 해결했다.
+
+```
+const MODAL_COMPONENTS = {
+  test: TestModal,
+  test2: Test2Modal
+} satisfies Record<string, React.MemoExoticComponent<() => React.ReactElement>>;
+```
+
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FHL40U%2Fbtsdwvl2J3q%2FhjTUp9aMys1IrJrvsG6qU1%2Fimg.png"
+    width="524"
+    className="m-auto"
+  />
+
+`satisfies`를 사용하면 `MODAL_COMPONENTS`에 직접적인 속성 추가에 대해서는 자유로우면서도,
+`MODAL_COMPONENTS`에 정의된 속성만 사용할 수 있도록 최대한 구체적인 타입을 정의의 해 준다.
+
+이제 `openDialog('teest')` 를 호출하면 타입 에러를 뱉어내게 된다.
+
+
+<br/>
+<br/>
+# ✨최종 코드
+
+```
+// ModalContainer.ts
+
+const MODAL_COMPONENTS: Record<string, () => React.ReactElement> = {
+  test: TestModal,
+  test2: Test2Modal
+};
+
+function ModalContainer() {
+  const modalList = useRecoilValue(modalListState);
+  const renderModal = modalList.map((id) => {
+    const ModalComponent = MODAL_COMPONENTS[id];
+    return <ModalComponent key={id} />;
+  });
+  return createPortal(
+    <>
+      {renderModal}
+    </>,
+    document.getElementById('modal') as HTMLElement
+  );
+}
+
+export default ModalContainer;
+```
+
+```
+// recoil/modal.ts
+
+import { atom, atomFamily, DefaultValue, selectorFamily } from 'recoil';
+
+export type ModalType = 
+export type ModalParams = Record<string, unknown> | null;
+export type Modal = {
+  id: ModalType;
+  isOpen: boolean;
+  params: ModalParams;
+};
+
+export const modalListState = atom<ModalType[]>({
+  key: 'modalListState',
+  default: []
+});
+
+const modalState = atomFamily<Modal, ModalType>({
+  key: 'modalState',
+  default: (id) => ({
+    id,
+    params: null
+  })
+
+export const modalSelector = selectorFamily<Modal, ModalType>({
+  key: 'modalSelector',
+  get:
+    (id) => get(modalState(id)),
+  set:
+    (id) =>
+    ({ get, set, reset }, newValue) => {
+      if (newValue instanceof DefaultValue) {
+        set(modalListState, (prev) => prev.filter((modalId) => modalId !== id));
+        reset(modalState(id));
+        return;
+      }
+
+      set(modalState(id), newValue);
+
+      if (get(modalListState).find((id) => id === newValue.id)) return;
+      set(modalListState, (prev) => [...prev, newValue.id]);
+    }
+});
+```
+
+```
+// useModal.ts
+
+import { Modal, ModalParams, modalSelector, ModalType } from '@/recoil/modal';
+import { useCallback } from 'react';
+import { useRecoilCallback } from 'recoil';
+
+function useModal() {
+  const setModal = useRecoilCallback(
+    ({ set }) =>
+      (id: ModalType, value: Modal) => {
+        set(modalSelector(id), value);
+      },
+    []
+  );
+
+  const closeModal = useRecoilCallback(
+    ({ reset }) =>
+      (id: ModalType) => {
+        reset(modalSelector(id));
+      },
+    []
+  );
+
+  const handleOpenModal = useCallback(
+    (id: ModalType, params: ModalParams = null) => {
+            const value = {
+                id,
+                params
+            };
+      setModal(id, value);
+    },
+    [setModal]
+  );
+
+  return { openModal: handleOpenModal, closeModal };
+}
+
+export default useModal;
+```
+
+<br/>
+<br/>
+# 참고 📌
+
+아이디어를 얻은 곳 
+[Implementing List Items With React and Recoil](https://betterprogramming.pub/implementing-list-items-with-react-and-recoil-c58f75e307dc)
+
+<br/>
+`satisfies`에 대해 참고한 곳
+
+[Documentation - TypeScript 4.9](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-9.html)
+
+[Typescript’s new ‘satisfies’ operator](https://medium.com/@cefn/typescript-satisfies-6ba52e74cb2f)

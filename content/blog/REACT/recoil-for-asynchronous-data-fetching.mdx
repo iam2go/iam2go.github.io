@@ -1,0 +1,705 @@
+---
+title: recoil과 비동기 데이터 호출 (+ 선언적 프로그래밍)
+date: "2022-09-17"
+tags: [react,recoil]
+description: recoil을 사용해서 비동기 데이터를 호출하는 방법을 소개한다. 이와 더헤 선언적 프로그래밍이 무엇인지 알아보고 선언적으로 비동기 처리하는 방식을 다뤘다.
+thumbnail: "./images/recoil.png"
+---
+
+> 💡 이 글은 ['React스러운 상태관리 라이브러리, Recoil을 알아보자'](https://iam2go.github.io/REACT/lets-explore-recoil/) 에서 이어집니다.
+
+
+
+<br/>
+<br/>
+
+# `selector`
+
+recoil에서는 `selector` 를 사용하여 비동기 데이터를 처리한다.
+
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2Fbt63Y9%2FbtrHPgmaA8L%2FgXSnvLlSzkAkM7uFErIW71%2Fimg.png"
+    width="612"
+    className="m-auto"
+  />
+
+**redux**에서 비동기 처리를 할 때는 **redux-thunk**나 **redux-saga**와 같은 미들웨어를 통해 action을 중간에 인터셉트하여 추가 동작을 수행하였다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FcIVRG2%2FbtrHPfHAPmu%2FKFkBsqfb6pF7pJrKbK9Yc1%2Fimg.png"
+    width="612"
+    className="m-auto"
+  />
+
+
+하지만 recoil에서 비동기 처리는 React의 일반 state의 흐름을 벗어나지 않고 거의 동일하게 흘러간다.
+
+<br/>
+
+여기 간단한 앱을 만들었다.
+
+이 앱은 페이지가 마운트되면 사용자 리스트를 받아와서 화면에 보여주며, 리스트를 클릭하면 해당 사용자의 간단한 프로필을 보여준다.
+
+```
+// App.tsx
+
+import React from "react";
+import { RecoilRoot } from "recoil";
+import UserInfo from "./components/UserInfo";
+import UserList from "./components/UserList";
+
+function App() {
+  return (
+    <RecoilRoot>
+      <AppWrap>
+        <UserList />
+        <UserInfo />
+      </AppWrap>
+    </RecoilRoot>
+  );
+}
+
+export default App;
+```
+
+사용자 리스트를 받아오는 부분은 `UserList` 에서 담당한다.
+
+안타깝게도 API는 지금 존재하지 않으니, 임시로 Promise 객체를 생성해 리턴해주었다.
+
+`getUserList()` 는 사용자 리스트 API를 호출하는 매서드이다.
+
+
+```
+// apis/user.ts
+
+export type UserType = {
+  id: string;
+  name: string;
+};
+
+export const getUserList = (): Promise<UserType[]> => {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(userList), 500);
+  });
+};
+```
+
+```
+// recoil/store.ts
+
+import { atom, selector } from "recoil";
+import { getUserList, UserType } from "../apis/user";
+
+export const userListSelector = selector<UserType[]>({
+  key: "userListSelector",
+  get: async () => {
+    return await getUserList();
+  },
+});
+```
+
+selector의 get매서드에서 API를 호출하고
+
+```
+// components/UserList.tsx
+
+import React from "react";
+import { useRecoilValue } from "recoil";
+import { userListSelector } from "../recoil/store";
+import UserItem from "./UserItem";
+
+function UserList() {
+  const userList = useRecoilValue(userListSelector);
+  return (
+    <Wrap>
+      {userList?.map((user) => (
+        <UserItem key={user.id} user={user} />
+      ))}
+    </Wrap>
+  );
+}
+
+...
+export default UserList;
+```
+
+`useRecoilValue` 를 사용하여 응답 데이터를 가져왔다.
+
+<br/>
+
+실행을 해보면, 다음과 같은 에러를 만나게 된다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbFgi5w%2FbtrHOlhqgBF%2FKF6E3UV8fgcBMV9fm5Rfy1%2Fimg.png"
+    width="612"
+    className="m-auto"
+/>
+
+
+컴포넌트가 마운트 되기 전에 상태를 불러왔기 때문에 발생한 에러이다. 보통의 경우 우리는 마운트가 완료된 이후 데이터를 호출하기 위하여 `useEffect(() => {} ,[])` 안에 호출 매서드를 넣어주었다.
+
+하지만 `useRecoilValue` 는 react Hook이기 때문에 useEffect의 안에서 사용할 수 없다.
+
+공식 홈페이지에서 recoil은 보류 중인 데이터를 다루기 위해 [React Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html)와 함께 동작하도록 디자인되어 있다 고 말한다.
+
+
+<br/>
+<br/>
+
+# Suspense
+
+`React.Suspense` 는 _컴포넌트가 읽어 들이고 있는 데이터가 아직 준비되지 않았다_ 고 React에 알려주는 일종의 메커니즘이다.
+
+**데이터 불러오기 시작 → 렌더링 시작 → 데이터 불러오기 완료** 순서로 동작하는 데이터 호출 로직에서 데이터 호출 완료 여부를 인지하여 데이터 불러오기를 완료할 때까지 `fallback` 속성 값으로 넣어준 컴포넌트를 표시한다.
+
+어떤 식으로 동작하는지만 이해하면 되기 때문에 `fallback` 으로 간단하게 Loading 텍스트만 띄워보았다.
+
+```
+// App.tsx
+
+function App() {
+  return (
+    <RecoilRoot>
+      <AppWrap>
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <UserList />
+          <UserInfo />
+        </React.Suspense>
+      </AppWrap>
+    </RecoilRoot>
+  );
+}
+```
+
+ <img
+    src="https://blog.kakaocdn.net/dn/cihn9k/btrHOTxZUgr/6wmdfZ0AmOnKZ1VBjaA6rK/img.gif"
+    width="612"
+    className="m-auto"
+  />
+
+데이터를 받아올 때까지 Loading 텍스트가 나타나며, 더 이상 에러가 뜨지 않는다.
+
+
+<br/>
+<br/>
+
+# 매개변수가 있는 비동기 데이터 다루기
+
+recoil에서 매개변수를 포함한 비동기 호출을 하기 위해 주로 두 가지 방법을 사용한다.
+
+1. Recoil Atom + Recoil selector
+2. React state + Recoil selectorFamily
+
+<br/>
+
+먼저 Recoil Atom + Recoil selector 를 사용한 방법부터 살펴보자.
+
+<br/>
+
+## 1️⃣ Recoil Atom + Recoil selector
+
+```
+// recoil/store.ts
+
+export const selectedUserState = atom({
+  key: "selectedUserState",
+  default: "",
+});
+
+export const userInfoState = selector<UserInfoType | null>({
+  key: "userInfoState",
+  get: async ({ get }) => {
+    const id = get(selectedUserState);
+    if (id === "") return null;
+    return await getUserInfo({ id });
+  },
+});
+```
+
+`userInfoState` 는 `selectedUserState` 에 의존성을 가지기 때문에 `selectedUserState` 값이 변경되면 `userInfoState`의 get매서드가 실행된다.
+
+`selectedUserState` 에는 클릭한 사용자의 id가 담긴다.
+
+```
+// components/UserList.tsx
+
+function UserList() {
+  const userList = useRecoilValue(userListSelector);
+  const setSelectedUser = useSetRecoilState(selectedUserState);
+  const onClick = (id: string) => {
+    setSelectedUser(id);
+  };
+  return (
+    <Wrap>
+      {userList?.map((user) => (
+        <UserItem key={user.id} user={user} onClick={onClick} />
+      ))}
+    </Wrap>
+  );
+}
+```
+
+```
+// components/UserInfo.tsx
+
+import React from "react";
+import { useRecoilValue } from "recoil";
+import { userInfoState } from "../recoil/store";
+
+function UserInfo() {
+  const infoData = useRecoilValue(userInfoState);
+  if (!infoData) return <></>;
+  return (
+    <InfoBox>
+      <h1>{infoData.name}</h1>
+      <Tag>{"@" + infoData.id}</Tag>
+      <Contents>{infoData.text}</Contents>
+    </InfoBox>
+  );
+}
+```
+
+`useRecoilValue` 를 통해 값을 가져온다.
+
+
+<img
+    src="https://blog.kakaocdn.net/dn/bHPcXt/btrHL1YzBsr/OiaQQuBki3v7WRkUB1Jku0/img.gif"
+    width="612"
+    className="m-auto"
+  />
+
+<br/>
+
+가짜 api에는 딜레이 시간을 1초로 걸어놓았다. 잘 보면 처음 클릭했을 때와는 다르게 두 번째 클릭 시에는 딜레이 없이 캐싱된 데이터가 즉각적으로 보여지게된다.
+
+<br/>
+<br/>
+
+## 2️⃣ React state + Recoil selectorFamily
+
+`selectorFamily`는 selector와 유사하지만 parameter(매개변수)를 받으며,
+이 parameter의 값에 따라 메모이징된 동일한 selector 인스턴스를 반환한다.
+
+구조는 아래와 같다.
+
+```
+function selectorFamily<T, Parameter>({
+  key: string,
+
+  get: Parameter => ({get: GetRecoilValue}) => Promise<T> | RecoilValue<T> | T,
+
+  set: Parameter => (
+    {
+      get: GetRecoilValue,
+      set: SetRecoilValue,
+      reset: ResetRecoilValue,
+    },
+    newValue: T | DefaultValue,
+  ) => void,
+
+  dangerouslyAllowMutability?: boolean,
+}): Parameter => RecoilState<T>
+```
+
+❗️주의할 점은 parameter비교 시 참조 동등성 대신 **값 동등성**을 사용한다는 점이다.
+
+javascript에서 객체의 비교는 주소의 비교이기 때문에 `{a: 1} !== {a: 1}` 와 같이, 값이 동일해도 다른 객체로 취급한다. 하지만 Recoil에서 parameter동일성은 레퍼런스가 아닌 값을 확인하기 때문에 아래의 코드에서 `data1`과 `data2`는 동일한 상태를 참조한다.
+
+```
+const data1 = useRecoilValue(myDataQuery({userID: 132}));
+const data2 = useRecoilValue(myDataQuery({userID: 132}));
+```
+
+<br/>
+이제 코드를 작성해보자.
+
+parameter로 `id` 를 받아서 API 호출 시 그 값을 그대로 넘겨주도록 설정해주었다.
+
+```
+// recoil/store.ts
+
+export const userInfoState = selectorFamily<UserInfoType | null, string>({
+  key: "userInfoState",
+  get: (id) => async () => {
+    if (id === "") return null;
+    return await getUserInfo({ id });
+  },
+});
+```
+
+호출 시에는 아래와 같이 인수를 넣어준다.
+
+```
+  const infoData = useRecoilValue(userInfoState(userID));
+```
+
+선택한 사용자 id에 따라 사용자 정보 API를 호출해야 하기 때문에 선택한 사용자를 로컬 state로 선언해줘야 한다.
+
+```
+// App.tsx
+
+function App() {
+  const [selectedUser, setSelectedUser] = useState("");
+  return (
+    <RecoilRoot>
+      <AppWrap>
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <UserList onClick={setSelectedUser} />
+          <UserInfo userID={selectedUser} />
+        </React.Suspense>
+      </AppWrap>
+    </RecoilRoot>
+  );
+}
+```
+
+```
+// components/UserList.tsx
+
+type Props = {
+  onClick: (id: string) => void;
+};
+function UserList({ onClick }: Props) {
+  const userList = useRecoilValue(userListSelector);
+
+  return (
+    <Wrap>
+      {userList?.map((user) => (
+        <UserItem key={user.id} user={user} onClick={onClick} />
+      ))}
+    </Wrap>
+  );
+}
+```
+
+```
+// components/UserInfo.tsx
+
+type Props = {
+  userID: string;
+};
+
+function UserInfo({ userID }: Props) {
+  const infoData = useRecoilValue(userInfoState(userID));
+  if (!infoData) return <></>;
+  return (
+    <InfoBox>
+      <h1>{infoData.name}</h1>
+      <Tag>{"@" + infoData.id}</Tag>
+      <Contents>{infoData.text}</Contents>
+    </InfoBox>
+  );
+}
+```
+
+<img
+    src="https://blog.kakaocdn.net/dn/bZ4TOx/btrHOluXqWm/FCJZj29QyiL7zsirbZ81a0/img.gif"
+    width="612"
+    className="m-auto"
+  />
+
+
+`selector`와 `selectorFamily` 모두 입력값이 동일한 경우에 대하여 캐싱한 값을 반환한다.  
+어떤 방법이 더 좋다! 하는 건 없으니 상황에 맞춰서 더 편한 방법을 사용하면 된다.
+
+<br/>
+<br/>
+
+# 에러 처리하기
+
+비동기 요청은 일반적으로 로딩, 성공, 실패 이렇게 세 가지 상태를 가진다. `<UserList/>`와 `<UserInfo/>` 컴포넌트는 성공의 상태만을 다룬다. 그리고 위에서 우리는 `<Suspense>` 를 통해 로딩 상태를 나타냈다.
+
+이제 비동기 요청이 실패했을 때, 즉 에러 처리를 다뤄보자.
+<br/>
+
+React에서는 컴포넌트에서 에러가 발생하면 모든 컴포넌트를 언마운트 시킨다. 조그마한 에러가 발생하더라도 애플리케이션 전체가 중단되는 것이다.
+
+`Error Boundary`는 **하위 컴포넌트 트리의 어디에서든 에러를 리포트하며 애플리케이션 중단 대신 fallback UI를 보여주는** React 컴포넌트다.
+
+정확히는 렌더링 중 발생하는 에러, React와 관련된 에러를 캐치한다.
+
+<br/>
+
+이 글을 쓰는 현시점을 기준으로, ErrorBoundary는 클래스형 컴포넌트로 이루어져 있으며, 커스텀을 위해서는 직접 이 클래스형 컴포넌트를 가져와 수정해야 한다.
+
+다행히 ErrorBoundary를 보다 간단하게 사용할 수 있도록 만든 확장 라이브러리 가 있다.
+
+[react-error-boundary](https://www.npmjs.com/package/react-error-boundary "react-error-boundary npm주소")를 사용하여 에러를 처리해보자.
+
+```
+npm i react-error-boundary
+```
+
+```
+// App.tsx
+
+...
+import { ErrorBoundary } from "react-error-boundary";
+
+function App() {
+  return (
+    <RecoilRoot>
+      <AppWrap>
+        <ErrorBoundary fallback={<div>Error!</div>}>
+          <Suspense fallback={<div>Loading...</div>}>
+            <UserList />
+            <UserInfo/>
+          </Suspense>
+        </ErrorBoundary>
+      </AppWrap>
+    </RecoilRoot>
+  );
+}
+```
+
+ErrorBoundary는 하위에 존재하는 컴포넌트의 에러만을 포착하기 때문에, 에러를 포착할 컴포넌트들을 감싸는 형식으로 사용한다.
+
+❗️여기에서는 로더를 간단하게 div요소로 만들었기 때문에 `fallback` 속성에 넣어주었지만, 실제로는 **`FallbackComponent`**또는**`fallbackRender`** 속성을 사용할 것을 권장한다.
+
+```
+// apis/user.ts
+
+export const getUserInfo = ({ id }: { id: string }): Promise<UserInfoType> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const [data] = _data.filter((user) => user.id === id);
+      if (data) {
+        resolve(data);
+      } else {
+        reject();
+      }
+    }, 300);
+  });
+};
+```
+
+사용자 리스트에 정보가 없는 사용자를 추가한 뒤 에러 처리가 잘 동작하는지 확인해보았다.
+
+<img
+    src="https://blog.kakaocdn.net/dn/bRzhCZ/btrHPJ2KqsD/uKPpxfDxIOrP3kvlr7ol6k/img.gif"
+    width="612"
+    className="m-auto"
+  />
+
+
+<br/>
+여기까지는 `UserInfo` 컴포넌트에서 에러가 발생했음에도 `UserList` 까지 렌더링을 중단하였다. 로딩 시에도 마찬가지이다. `UserInfo` 컴포넌트에서만 데이터를 가져오는 중이었지만 마치 페이지 전체가 로딩 중인 것처럼 부자연스럽게 로더가 보였다.
+
+`UserInfo` 컴포넌트가 로딩 중일 때는 `UserInfo` 컴포넌트 부분만 로더를 띄우고 싶다면 어떻게 해야 할까?
+`UserInfo` 에게 독립적인 `<Suspense>` 경계를 부여하면 된다.
+
+각각의 컴포넌트에 고유의 상태를 나타내 주고 싶다면? 각각의 컴포넌트에 경계를 부여해주면 된다.
+
+(여기서부터는 원활한 설명을 위해 ErrorBoundary와 Suspense를 총칭하여 **'경계**'라 표현하겠다.)
+
+<br/>
+
+예시로 확인해보자.
+
+먼저 설정해주었던 경계의 하위에 `UserInfo`만을 감싸는 새로운 경계를 추가해주었다.
+
+```
+// App.tsx
+
+function App() {
+  return (
+    <AppWrap>
+      <ErrorBoundary fallback={<div>Error!</div>}>
+        <Suspense fallback={<div>Loading...</div>}>
+          <UserList/>
+          <ErrorBoundary fallback={<div>Error!</div>}>
+            <Suspense fallback={<div>Loading...</div>}>
+              <UserInfo/>
+            </Suspense>
+          </ErrorBoundary>
+        </Suspense>
+      </ErrorBoundary>
+    </AppWrap>
+  );
+}
+```
+
+
+<img
+    src="https://blog.kakaocdn.net/dn/PkZ3j/btrHOTLyynz/seWFCDi6UcTcWtRZm2sWgk/img.gif"
+    width="612"
+    className="m-auto"
+  />
+
+훨씬 나아진 모습을 볼 수 있다.
+
+<br/>
+
+React는 컴포넌트가 렌더링 상태일 때 해당 컴포넌트 상위에서 트리상으로 가장 가까운 Suspense 찾아 fallback을 표시한다.
+
+위의 특성을 유념하여 원하는 곳 어디에든 경계를 설정하면 된다.
+
+
+<img
+    src="https://blog.kakaocdn.net/dn/ytgOY/btrHOTER3sc/5eHT3uV7TER68DL5KAK8P0/img.gif"
+    width="612"
+    className="m-auto"
+  />
+
+현재는 에러가 발생하면 다른 사용자를 클릭해도 다시 렌더링 되지 않는다.
+
+```
+// App.tsx
+
+...
+    <ErrorBoundary
+        fallback={<div>Error!</div>}
+        resetKeys={[selectedUser]}
+    >
+        <Suspense fallback={<div>Loading...</div>}>
+            <UserInfo userID={selectedUser} />
+        </Suspense>
+    </ErrorBoundary>
+```
+
+`resetKeys` 값으로 의존성 배열을 넘겨줘서 특정 값이 변경되었을 때 초기화되도록 설정할 수 있다.
+
+
+<img
+    src="https://blog.kakaocdn.net/dn/cMoBCv/btrHNW3fCM4/OyivJkpw6wCWx9292FKCSK/img.gif"
+    width="612"
+    className="m-auto"
+/>
+
+<br/>
+<br/>
+
+
+# Reocil과 선언적 프로그래밍
+
+recoil을 통해 비동기 데이터를 처리하는 방식은 우리가 이전까지 사용해왔던 방식과 차이가 있었다.
+
+```
+const { createSlice } = require('@reduxjs/toolkit');
+
+export const somethingSelector = (state) => state.something;
+
+const initialState = {
+  loading: false,
+  data: null,
+  error: null
+};
+
+const something = createSlice({
+  name: 'something',
+  initialState,
+  reducers: {
+    getSomethingRequest: (state, action) => {
+      state.loading = true;
+    },
+    getRequestSuccess: (state, action) => {
+      const { data } = action.payload;
+      state.loading = false;
+            state.data = data;
+    },
+    getRequestFailure: (state, action) => {
+      const { error } = action.payload;
+      state.loading = false;
+      state.error = error;
+    }
+  }
+});
+...
+
+```
+
+```
+function App() {
+    const {loading, data, error} = useSelector(somethingSelector);
+
+
+if (loading) {
+    return <Spinner/>
+}
+
+if (error) {
+    return <ErrorMessage error={error}/>
+}
+
+return <DataView data={data}/>;
+}
+
+export default ImperativeComponent;
+```
+
+위 코드가 아마 우리가 늘 사용했던 방식 일 것이다.
+
+`App` 컴포넌트에서 selector를 통해 redux에서 비동기 데이터 처리 상태를 가져오고, 상태에 따라서 각각 다른 UI를 보여주었다.
+
+<br/>
+
+`App` 컴포넌트는 다음과 같이 명령한다.
+
+💁‍♀️:  `loading` 이 `true` 일 때는 `<Spinner/>` 를 보여주고,
+`error` 가 발생했다면 `<ErrorMessage/>` 를 보여주고,
+그게 아니라면 `<DataView/>` 를 보여줘!
+
+<br/>
+이러한 방식을 **명령형 프로그래밍**이라고 한다.
+
+_**‘UI를 어떻게(HOW) 보여줄 것인가’**_ 에 집중하고 있기 때문이다.
+
+<br/>
+
+recoil을 사용한 비동기 데이터 처리에서 우리는 `<Suspense/>` 와 `<ErrorBoundary/>` 를 사용했다. 위의 App컴포넌트를 recoil을 사용한 방식으로 바꾸면 아래 코드처럼 나타낼 수 있다.
+
+```
+function App() {
+  const data = useRecoilValue(somethingSelector)
+  return (
+      <ErrorBoundary FallbackComponent={ErrorMessage}>
+        <Suspense fallback={Spinner}>
+                    <DataView data={data}/>
+        </Suspense>
+      </ErrorBoundary>
+  );
+}
+```
+
+이렇게 `<Suspense/>` 와 `<ErrorBoundary/>` 를 사용하여 컴포넌트를 구성하는 방식이 **선언적 프로그래밍**이다.
+
+명령형 프로그래밍과는 다르게 _**‘무엇을(WHAT) 보여줄 것인가'**_ 에 집중한다.
+<br/>
+
+데이터를 아직 불러오고 있는 상황일 때는 `<Spinner/>` 를,
+에러가 발생한 상황일 때는 `<ErrorMessage/>` 를,
+데이터를 정상적으로 받은 상황이라면 `<DataView/>` 를 보여준다.
+
+‘상황’에 따라 적절한 UI를 나타내고 있다.
+
+<br/>
+
+✔️ 아직 그 차이를 모르겠다면 실생활 예시를 살펴보자.
+
+> _퇴근 후 친구와 저녁 약속이 있는 당신은 한 레스토랑에 도착했다. 그리고, 프론트의 직원에게 다음과 같이 말한다._  
+>   
+> **명령적 방식(HOW) :** _“ 저 구석에 창가 자리가 비어있는 것 같은데, 저희 일행은 저 자리로 걸어가서 앉을게요.”_  
+> **선언적 방식(WHAT):** _“ 두 명 자리 부탁해요.”_
+
+명령적 방식에서 당신은 어떻게 앉을지에 집중을 했고 실제로 어떻게 앉을 지에 대한 방법을 나열했다.
+선언적 방식에서는 오로지 ‘두 명의 자리' 에만 집중한다.
+
+선언적 프로그래밍으로 컴포넌트를 구성하면, 로딩 상태와 에러 상태가 분리되며 컴포넌트는 성공한 경우만 다루게 된다. 따라서 컴포넌트의 관심사를 확실하게 분리할 수 있으며 유지보수 또한 편리해진다. 하나의 페이지에 여러 비동기 데이터를 다루는 복잡한 UI일수록 그 장점이 더 확연하게 보일 것이다.
+
+
+<br/>
+<br/>
+지금에서야 밝히지만, recoil에서 비동기 데이터를 다룰 때 무조건 `<Suspense/>`를 사용해야 하는 것은 아니다. [useRecoilValueLoadable()](https://recoiljs.org/docs/api-reference/core/useRecoilValueLoadable) 을 사용하면 렌더링 중 상태를 확인할 수 있다. 하지만 애초에 React가 무엇을 보여줄 지에 집중하는 선언형 프로그래밍 방식인 만큼 이 기회를 통해 비동기 처리도 선언적으로 구성해보는 것을 추천한다.
+
+
+
+<br/>
+
+# 참고📌
+
+비동기 데이터 흐름 이미지 출처 -> [Refactoring a Redux app to use Recoil](https://blog.logrocket.com/refactoring-redux-app-to-use-recoil/)
+
+[Imperative vs Declarative Programming](https://ui.dev/imperative-vs-declarative-programming)
+
+같이 참고하면 좋은 글 -> [concurrent UI 패턴](https://ko.reactjs.org/docs/concurrent-mode-patterns.html)

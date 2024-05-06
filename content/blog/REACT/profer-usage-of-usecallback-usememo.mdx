@@ -1,0 +1,341 @@
+---
+title: useCallback과 useMemo 제대로 사용하기
+date: "2021-09-12"
+tags: [react]
+description: 나는 지금까지 useCallback과 useMemo를 올바르게 사용하고 있었을까?
+thumbnail: "./images/react.png"
+---
+
+
+_`useCallback`과 `useMemo`는 메모이제이션 된 값을 반환한다. 차이점은 `useCallback`은 함수를 메모이제이션하고 `useMemo`는 값을 메모이제이션한다._
+
+면접을 준비하여 외웠던 대답이다. 실제 프로젝트를 하면서 `useCallback`을 써봤지만 왜 쓰는지, 언제 써야하는지를 정확히 이해하지 못했었다.(심지어는 전혀 이점없는 곳에 썼다🙄) 회사에 와서야 `useCallback`과 `useMemo`를 사용하는 목적이 무엇인지를 완전히 이해하고 올바르게 사용하게 되었다. 이제 내가 이해한 내용을 여기에 정리해보려한다.
+
+
+<br/>
+<br/>
+# REACT의 리렌더링
+
+React가 리렌더링을 하는 조건은 3가지이다.
+
+-   자신의 state가 변경될 때
+-   부모 컴포넌트로부터 전달받은 props가 변경될 때
+-   부모 컴포넌트가 리렌더링 될 때
+
+
+<br/>
+
+여기 간단한 앱이 있다.
+
+```
+// App.js
+
+function App() {
+  const [number, setNumber] = useState(0);
+  return (
+    <div className="App">
+      <div className="num" onClick={()=>{setNumber(number+1)}}>{number}</div> 
+      <Button/>
+    </div>
+  );
+}
+
+export default App;
+```
+
+숫자를 클릭하면 숫자가 1씩 증가하는 앱이다. 아래에는 버튼을 만들어 주었다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbAWIbK%2FbtreMDwFbYq%2FjlwHVmtN3JPJe5kKttEuHK%2Fimg.png"
+    width="439"
+    className="m-auto"
+  />
+
+실행한 모습은 위와 같다.
+
+<br/>
+
+`Button`컴포넌트는 props가 없는 순수 UI컴포넌트이다.
+
+```
+// Button.js
+
+function Button() {
+    return (
+      <button className="button">RESET</button>
+    );
+  }
+
+  export default Button;
+```
+
+이 컴포넌트는 항상 같은 결과를 return하지만 '_부모 컴포넌트가 리렌더링 될 때 자식 컴포넌트로 리렌더링 된다._' 라는 조건에 따라 **부모 컴포넌트가 리렌더링 될 때 항상 리렌더링된다**.
+
+ <img
+    src="https://blog.kakaocdn.net/dn/bpQLxq/btreJxLrFaK/lyTtEovXpb5UD62mtuagO0/img.gif"
+    width="439"
+    className="m-auto"
+  />
+
+
+<br/>
+
+물론 지금과 같이 매우 간단한 앱에서는 불필요한 리렌더링이 몇번이고 일어나든 성능에 문제되지 않는다. 하지만 만약 Button이라는 컴포넌트가 엄청 복잡하고 값비싼 코드를 포함하는 컴포넌트라면 어떨까?  리렌더링을 최대한 줄여야할 것이다.   
+그렇다면 이 불필요한 리렌더링을 막을 방법은 무엇일까?
+
+<br/>
+
+바로 `React.memo`를 사용하면 된다.
+
+
+<br/>
+<br/>
+
+# 👀 React.memo를 알아보자
+
+`React.memo` 는 **컴포넌트를 메모이제이션**해준다.
+
+부모 컴포넌트로 넘겨받는 props가 같다면 메모이제이션 해둔 렌더링 결과를 가져온다. 메모이제이션한 내용을 재사용하여 렌더링시 가상 DOM에서 달라진 부분을 확인하지 않아 성능상의 이점이 생기게 된다.
+
+```
+const MyComponent = React.memo(function MyComponent(props) {
+  /* props를 사용하여 렌더링 */
+});
+```
+
+```
+function MyComponent(props) {
+  /* props를 사용하여 렌더링 */
+}
+export default React.memo(MyComponent, areEqual);
+```
+
+위와 같이 컴포넌트를 감싸주는 방식으로 사용하면 된다.
+
+<br/>
+
+그럼 `Button` 컴포넌트를 `React.memo`로 감싸보자.
+
+```
+// Button.js
+
+function Button() {
+    return (
+      <button className="button">RESET</button>
+    );
+  }
+
+  export default React.memo(Button);
+```
+
+이제 버튼 부분은 리렌더링 되지 않는것을 확인할 수 있다.
+
+ <img
+    src="https://blog.kakaocdn.net/dn/3V3lo/btreOt1B9L6/htSuXyD7WtwSjU9xD7gTI0/img.gif"
+    width="439"
+    className="m-auto"
+  />
+
+
+<br/>
+<br/>
+
+현재 버튼은 아무런 동작도 일으키지 못한다.
+
+버튼이 제역할을 하기위해 `RESET`버튼을 클릭하면 숫자가 0으로 리셋되도록 구현해주었다.
+
+```
+// App.js
+
+const onClick = () => {
+    setNumber(0);
+  }
+
+  return (
+    <div className="App">
+      <div className="num" onClick={()=>{setNumber(number+1)}}>{number}</div> 
+      <Button onClick={onClick}/>
+    </div>
+  );
+```
+
+`onClick`함수를 만들고 `Button`컴포넌트에 넘겨주었다.
+
+<br/>
+
+
+```
+// Button.js
+
+function Button({onClick}) {
+    return (
+      <button className="button" onClick={onClick}>RESET</button>
+    );
+  }
+
+  export default React.memo(Button);
+```
+
+이제 다시 앱을 실행시켜서 버튼이 제 역할을 잘 하는지 확인해보자. 버튼은 잘 동작한다. 그런데 숫자를 클릭하면 버튼이 다시 리랜더링 되는 현상을 발견할 수 있다.
+
+ <img
+    src="https://blog.kakaocdn.net/dn/baE9aI/btrePWW4kQ4/IfZxHctgy3Y3JaF9U7TYvK/img.gif"
+    width="439"
+    className="m-auto"
+  />
+<br/>
+<br/>
+
+왜 `React.memo`가 제 기능을 못하는 걸까🤔?
+
+<br/>
+<br/>
+
+# `object` !== `object`
+
+리렌더링이 발생되면 해당 컴포넌트의 모든 객체들은 다시 생성된다.( ❗ 함수도 객체이다. ) **javascript에서 객체는 참조타입으로 완전히 동일한 값을 가지고 있더라도 참조하는 주소가 다르면 서로 다른 객체로 취급된다.**
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2Fd4h66k%2FbtrePW3x0ry%2Frz289a5fkKWHGPXCaUhUv0%2Fimg.png"
+    width="300"
+    className="m-auto"
+  />
+
+
+
+b는 a의 주소값을 복사했기 때문에 동일한 객체라 인식하지만,
+
+a와 값이 동일한 객체는 a와 주소값이 다르기 때문에 다른 객체라 판단한다.
+
+즉, 컴포넌트는 리렌더링할 때 마다 새로운 함수를 계속 생성하며, `React.memo`는 부모 컴포넌트로 넘겨받는 props가 변경되었다고 판단하여 계속 리렌더링 하는 것이다.
+
+
+<br/>
+
+`useCallback`과 `useMemo` 는 여기서 발생하는 불필요한 렌더링과 불필요한 계산을 방지하는 목적으로 설계되었다.
+
+<br/>
+<br/>
+
+# `useCallback`
+
+`useCallback` 은 언제나 동일한 함수를 return해준다.
+
+```
+const memoizedCallback = useCallback(
+  () => {
+    doSomething(a, b);
+  },
+  [a, b], // deps
+);
+```
+
+deps안에 넣어준 값이 바뀔때에만 새로운 객체를 생성한다.
+
+React.memo로 감싸준 자식 컴포넌트에게 함수를 prop로 넘겨줄 경우, 넘겨받는 함수를 `useCallback`으로 감싸주면 `deps` 가 바뀔 경우를 제외하고 항상 동일한 객체를 넘겨줌으로 불필요한 리렌더링을 방지할 수 있다.
+
+<br/>
+
+```
+// App.js
+
+function App() {
+  ...
+  const onClick = useCallback(() => {
+      setNumber(0);
+    },[]);
+    ...
+}
+```
+
+`Button`컴포넌트에 넘겨주는 `onClick` 함수를 `useCallback`으로 감싸주게 되면, Button의 불필요한 리렌더링이 방지된다.
+
+
+ <img
+    src="https://blog.kakaocdn.net/dn/cGfwcy/btreLLobstc/tQrH6eAk9iUo5kIfBlg0Gk/img.gif"
+    width="439"
+    className="m-auto"
+  />
+
+<br/>
+<br/>
+
+# `useMemo`
+
+`useMemo`도 `useCallback`과 동일한 방식으로 사용하면 된다.
+
+```
+const memoizedValue = useMemo(() => computeExpensiveValue(a, b), [a, b]);
+```
+
+<br/>
+
+`Button`이 공통컴포넌트이고 상황에 따라 style을 커스텀 할 수 있게 props로 `style`을 넘겨준다고 가정해보자.
+
+```
+// App.js
+
+function App() {
+  ...
+  return (
+      <div className="App">
+        <div className="num" onClick={()=>{setNumber(number+1)}}>{number}</div> 
+        <Button onClick={onClick} style={{backgroundColor: 'darkseagreen'}}/>
+      </div>
+    );
+    ...
+}
+```
+
+react에서 인라인으로 객체를 넣으면 위에서 설명했듯이, 리렌더링시마다 새로운 객체가 생성된다. 따라서 `Button`은 계속 리렌더링 된다.
+
+
+ <img
+    src="https://blog.kakaocdn.net/dn/DPQ9i/btreJn2YxpC/CCLrW5GbAG3pCwJUIRZ3ek/img.gif"
+    width="439"
+    className="m-auto"
+  />
+<br/>
+
+이때, `useMemo`를 사용해서 객체를 메모이제이션 해줌으로 `style` prop에 대해 동일한 참조를 제공할 수 있다.
+
+```
+// App.js
+
+function App() {
+  ...
+	const buttonStyle = useMemo(() => ({backgroundColor: 'darkseagreen'}), []);
+
+  return (
+    <div className="App">
+      <div className="num" onClick={()=>{setNumber(number+1)}}>{number}</div> 
+      <Button onClick={onClick} style={buttonStyle}/>
+    </div>
+  );
+  ...
+  
+ }
+```
+
+
+ <img
+    src="https://blog.kakaocdn.net/dn/b5lWih/btreKk5VZlR/a4Wosj6EJrMgz0zSs2voj0/img.gif"
+    width="439"
+    className="m-auto"
+  />
+
+<br/>
+
+❗ `deps`가 빈 배열인 이유는 위의 예시에서는 해당 함수나 값이 의존하는 변수가 없기 때문이다. 의존하는 값이 존재하는 경우에는 반드시 `deps` 배열안에 명시해줘야 한다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FmQHDL%2FbtreJQRQxjr%2Fb3L99MJRGYlNUw8mV11G81%2Fimg.png"
+    width="500"
+    className="m-auto"
+  />
+
+
+
+# 참조 📌
+
+[deps 이미지 출처](https://alexsidorenko.com/blog/react-render-usememo/)

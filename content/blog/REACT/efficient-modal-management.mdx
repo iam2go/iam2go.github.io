@@ -1,0 +1,442 @@
+---
+title: 효율적으로 모달 관리하기
+date: "2022-10-12"
+tags: [react, modal]
+description:  context API, Redux를 사용하여 전역으로 모달 관리하기
+thumbnail: "./images/modal.png"
+---
+
+이 글은 [**Portal을 사용한 모달창 만들기**](https://iam2go.github.io/REACT/create-modal-using-portal/)에서 이어집니다.
+
+<br/>
+<br/>
+
+모달을 필요한 컴포넌트에서 그때그때 렌더링 하는 방법은 불필요한 코드를 늘리며, 각각의 컴포넌트에서 모달에 관련된 로직까지 담당하게 되어 컴포넌트의 단일 책임 원칙을 위반한다.
+모달의 상태를 전역으로 관리하여 필요한 곳에서 호출만 해주면 되도록 변경한다면 위에서 언급한 문제점들을 해결할 수 있다.
+
+먼저 context API를 사용한 방법, 그리고 Redux를 사용한 방법에 대해서 차례대로 알아보자.
+
+<br/>
+<br/>
+# 1️⃣ context API를 사용한 모달 관리
+
+```
+// context/ModalProvider.js
+
+import React, { useState } from "react";
+
+export const ModalStateContext = React.createContext();
+export const ModalSetterContext = React.createContext();
+
+function ModalProvider({ children }) {
+  const [state, setState] = useState({
+            type: null,
+            props: null,
+    });
+
+  return (
+    <ModalSetterContext.Provider value={setState}>
+      <ModalStateContext.Provider value={state}>
+        {children}
+      </ModalStateContext.Provider>
+    </ModalSetterhContext.Provider>
+  );
+}
+
+export default ModalProvider;
+```
+
+`createContext()`를 통해 모달 context를 생성해준다.
+
+context를 구독하는 모든 컴포넌트는 Provider의 value prop가 바뀔 때마다 다시 렌더링 되기 때문에, setter함수만 이용하는 컴포넌트도 state값이 바뀌면 리렌더링 된다. 따라서 state와 setter함수 각각의 context를 분리하여 불필요한 리렌더링을 방지하였다.
+
+```
+// index.js
+
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import ModalProvider from "./context/ModalProvider";
+import GlobalStyle from "./style/GlobalStyle";
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <>
+    <ModalProvider>
+      <GlobalStyle />
+      <App />
+    </ModalProvider>
+  </>
+);
+```
+
+만든 `ModalProvider`로 App을 감싸준다.
+
+```
+// hooks/useModal.js
+
+import { useContext } from "react";
+import { ModalSetterContext } from "../context/ModalProvider";
+
+function useModal() {
+  const setModalState = useContext(ModalSetterSContext);
+
+  const openModal = ({ type, props = null }) => {
+    setModalState({type, props});
+  };
+
+  const closeModal = () => {
+    setModalState({type: null, props: null});
+  };
+
+  return { openModal, closeModal };
+}
+
+export default useModal;
+```
+
+
+<br/>
+이제 context를 통해 제공받은 setter함수를 사용하여 모달을 열고 닫는 로직을 구현해야한다.
+
+`useModal`이라는 이름의 커스텀 hook을 만들어주었다.
+
+```
+function App() {
+  const { openModal } = useModal();
+
+  const onClickButton1 = () => {
+    openModal({ type: "first" });
+  };
+
+  const onClickButton2 = () => {
+    openModal({ type: "second" });
+  };
+
+  return (
+    <AppWrap>
+      <Button onClick={onClickButton1}>Click Me !</Button>
+      <Button className="blue" onClick={onClickButton2}>
+        Click Me !
+      </Button>
+        </AppWrap>
+    );
+}
+```
+
+`useModal`에서 구현한 `openModal`을 사용하여 모달을 띄우면 된다.
+
+<br/>
+
+마지막으로 모달 컴포넌트 렌더링을 담당하는 모달 관리 컴포넌트를 만들어야 한다.
+
+```
+// components/ModalContainer.js
+
+import React, { useContext } from "react";
+import { createPortal } from "react-dom";
+import { ModalStateContext } from "../../context/ModalProvider";
+import SampleModal from "./SampleModal";
+import SecondModal from "./SecondModal";
+
+const MODAL_COMPONENTS = {
+  first: SampleModal,
+  second: SecondModal,
+};
+
+function ModalContainer() {
+  const { type, props } = useContext(ModalStateContext);
+    const { }
+
+  if (!type) {
+    return null;
+  }
+
+  const Modal = MODAL_COMPONENTS[type];
+  return createPortal(
+    <>
+      <Modal {...props} />
+    </>,
+    document.getElementById("modal")
+  );
+}
+
+export default ModalContainer;
+```
+
+프로젝트에서 사용하는 모든 모달 컴포넌트를 불러온 뒤 `MODAL_COMPONENTS`객체에 차곡차곡 담아준다.
+
+context로부터 전달받은 type에 해당하는 모달 컴포넌트를 렌더링 하고, props값을 넘겨준다.
+
+<br/>
+
+
+```
+// components/ModalContainer
+...
+import useModal from "../../hooks/useModal";
+
+...
+function ModalContainer() {
+  const { closeModal } = useModal();
+
+  const renderModal = modalList.map(({ type, props }) => {
+    const ModalComponent = MODAL_COMPONENTS[type];
+    return <ModalComponent key={type} {...props} onClose={closeModal} />;
+  });
+  return createPortal(<>{renderModal}</>, document.getElementById("modal"));
+}
+
+export default ModalContainer;
+```
+
+`closeModal`메서드는 위 코드처럼 `ModalContainer`에서 불러와 모달 컴포넌트의 props로 넘겨주어도 되고, 각각의 모달 컴포넌트에서 불러와 사용해도 된다.
+
+```
+// index.js
+
+...
+
+import ModalContainer from "./components/Modal/ModalContainer";
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <>
+    <ModalProvider>
+      <GlobalStyle />
+      <App />
+      <ModalContainer />
+    </ModalProvider>
+  </>
+);
+```
+
+이 모달 관리 컴포넌트는 App과 같은 레벨에 추가해주었다.
+
+
+<br/>
+<br/>
+
+
+# 2️⃣ redux를 사용한 모달 관리
+
+정확히는 **redux-toolkit**을 사용한 모달 관리에 대하여 설명한다. `ModalContainer`를 비롯한 전체적인 로직은 context api를 사용한 모달 관리와 비슷하며, 달라진 부분만을 다뤘다.
+
+프로젝트에 이미 redux 관련 셋팅이 완료되었다는 가정하에 진행한다.
+
+```
+// store/index.js
+
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import { modalSlice } from "./modalSlice";
+...
+
+const rootReducer = combineReducers({
+...
+  modal: modalSlice.reducer,
+});
+
+export const store = configureStore({
+  reducer: rootReducer,
+});
+```
+
+먼저 `rootReducer` 에 모달 reducer를 추가해준다.
+
+```
+// store/modalSlice.js
+
+import { createSlice } from "@reduxjs/toolkit";
+
+const initialState = {
+  type: null,
+  props: null,
+};
+
+export const modalSelector = (state) => state.modal;
+
+export const modalSlice = createSlice({
+  name: "modal",
+  initialState,
+  reducers: {
+    openModal: (state, action) => {
+      const { type, props } = action.payload;
+      state.type = type;
+      state.props = props;
+    },
+    closeModal: (state, action) => {
+      return initialState;
+    },
+  },
+});
+
+export const { openModal, closeModal } = modalSlice.actions;
+```
+
+modalSlice를 생성한 뒤,  `openModal` , `closeModal` 리듀서 함수를 만들어준다.
+
+```
+// hooks/useModal.js
+
+import { useDispatch } from "react-redux";
+import { openModal, closeModal } from "../store/modalSlice";
+
+function useModal() {
+  const dispatch = useDispatch();
+
+  const handleOpenModal = ({ type, props }) => {
+    dispatch(openModal({ type, props }));
+  };
+
+  const handleCloseModal = (type) => {
+    dispatch(closeModal());
+  };
+
+  return { openModal: handleOpenModal, closeModal: handleCloseModal };
+}
+
+export default useModal;
+```
+
+useModal에서는 context api 사용 시 setter함수를 사용하여 state를 변경했던 부분을 `dispatch`를 사용한 코드로 바꿔주면 된다.
+
+```
+// components/ModalContainer.js
+
+import React from "react";
+import { createPortal } from "react-dom";
+import { useSelector } from "react-redux";
+import { modalSelector } from "../../store/modalSlice";
+import SampleModal from "./SampleModal";
+import SecondModal from "./SecondModal";
+
+const MODAL_COMPONENTS = {
+  first: SampleModal,
+  second: SecondModal,
+};
+
+function ModalContainer() {
+  const { type, props } = useSelector(modalSelector);
+
+  if (!type) {
+    return null;
+  }
+
+  const Modal = MODAL_COMPONENTS[type];
+  return createPortal(
+    <>
+      <Modal {...props} />
+    </>,
+    document.getElementById("modal")
+  );
+}
+
+export default ModalContainer;
+```
+
+모달의 type과 props는 `useSelector`를 사용하여 가져온다. 이하 코드는 동일하다.
+
+<br/>
+<br/>
+
+# 여러 개의 모달 띄우기
+
+프로젝트를 만들다 보면 가끔 모달 안에서 또 다른 모달을 호출할 일이 생긴다.
+하지만 위에서 소개한 방법으로는 두 개 이상의 모달을 띄울 수 없다.
+
+ <img
+    src="https://blog.kakaocdn.net/dn/6nk9H/btrLNvHsOak/S1CtIoG1lzuNuoaatinI21/img.gif"
+    width="612"
+    className="m-auto"
+  />
+
+<br/>
+
+모달 상태 값으로 하나의 모달 정보만을 저장하기 때문에, 또 다른 모달 호출 시 기존 모달이 사라지고 새로운 모달이 나타난다.
+
+여러 개의 모달을 띄우기 위해서는 모달 상태 값을 배열로 변경하여 렌더링 할 모달 정보를 차곡차곡 쌓아주어야 한다.
+
+```
+// store/modalSlice.js
+
+import { createSlice } from "@reduxjs/toolkit";
+
+const initialState = [];
+
+export const modalSelector = (state) => state.modal;
+
+export const modalSlice = createSlice({
+  name: "modal",
+  initialState,
+  reducers: {
+    openModal: (state, action) => {
+      const { type, props } = action.payload;
+      return state.concat({ type, props });
+    },
+    closeModal: (state, action) => {
+      state.pop();
+    },
+  },
+});
+
+export const { openModal, closeModal } = modalSlice.actions;
+```
+
+`openModal` 액션이 발생하면 모달 리스트에 새로 열린 모달 정보를 넣어주도록 바꿔주었다.
+
+반대로 `closeModal` 액션이 발생하면 모달 리스트에서 가장 마지막에 열린 모달 정보를 `pop` 해주었다.
+
+```
+// components/ModalContainer.js
+
+import React from "react";
+import { createPortal } from "react-dom";
+import { useSelector } from "react-redux";
+import { modalSelector } from "../../store/modalSlice";
+import SampleModal from "./SampleModal";
+import SecondModal from "./SecondModal";
+
+const MODAL_COMPONENTS = {
+  first: SampleModal,
+  second: SecondModal,
+};
+
+function ModalContainer() {
+  const modalList = useSelector(modalSelector);
+
+  const renderModal = modalList.map(({ type, props }) => {
+    const ModalComponent = MODAL_COMPONENTS[type];
+    return <ModalComponent key={type} {...props} />;
+  });
+  return createPortal(<>{renderModal}</>, document.getElementById("modal"));
+}
+
+export default ModalContainer;
+```
+
+`ModalContainer` 에서 모달 컴포넌트를 렌더링 하는 부분을 바꿔준다.
+
+ <img
+    src="https://blog.kakaocdn.net/dn/b1yAbX/btrLMyLfuVH/sjsGWWrNnXP2hK2kvStjyK/img.gif"
+    width="612"
+    className="m-auto"
+  />
+
+
+이제 여러 개의 모달을 띄울 수 있다.
+
+<br/>
+<br/>
+
+이번 글은 모달을 전역적으로 관리하기 위해 ‘어떻게 구조를 잡아야 하는지’에 초점을 맞췄습니다. 코드 하나하나의 설명은 생략했기 때문에 만약 궁금한 부분이 있다면 댓글을 남겨주세요🙂
+
+<br/>
+<br/>
+
+
+# 참고 📌 
+
+[stackoverflow: how can I display a Modal-dialog in redux that performs asynchronous actions](https://stackoverflow.com/questions/35623656/how-can-i-display-a-modal-dialog-in-redux-that-performs-asynchronous-actions/35641680)
+
+ [How can I display a modal dialog in Redux that performs asynchronous actions?](https://stackoverflow.com/questions/35623656/how-can-i-display-a-modal-dialog-in-redux-that-performs-asynchronous-actions/35641680)
+
+[Practical Redux, Part 10: Managing Modals](https://blog.isquaredsoftware.com/2017/07/practical-redux-part-10-managing-modals/#adding-modal-dialogs)

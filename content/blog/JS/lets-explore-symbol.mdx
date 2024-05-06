@@ -1,0 +1,68 @@
+---
+title: Symbol을 알아보자
+date: "2021-09-04"
+tags: [javascript]
+description: ES6에서부터 추가된 7번째 타입 Symbol에 대해 알아보자
+thumbnail: "./images/js.png"
+---
+
+
+
+# Symbol이란? 🤔
+
+**심볼(Symbol)** 은 ES6에서부터 추가된 7번째 타입의 값이다.  
+심볼(Symbol)은 프로그램이 이름 충돌의 위험 없이 속성(property)의 키(key)로 쓰기 위해 생성하고 사용할 수 있는 값이다.
+
+`let newSymbol = Symbol();`
+
+<br />
+
+`Symbol()`을 호출하면 새로운 심볼 값이 생성된다. **이 값은 고유하다.** 즉, 다른 어떤 값과도 다르다. 심볼을 키값으로 사용하게 된다면 다른 어떤 속성과도 충돌하지 않는다.
+
+
+<br />
+<br />
+
+# Symbol의 특징
+
+  
+심볼은 이런 식으로 사용할 수 있다.
+
+```
+let isOpen = Symbol('isOpen');
+
+...
+
+element[isOpen] = true;
+```
+
+-  위 코드에서 `isOpen`문자열은 주석일 뿐이다. 심볼 값을 `console.log()`로 찍거나, `.toString()`을 써서 심볼 값을 문자열로 바꾸거나, 에러 메시지에서 참조할 경우 이 문자열이 출력된다. 
+-  심볼을 key로 갖는 속성은 `obj.name`같이 `.`을 사용해서 접근할 수 **없다**.
+-  위와 같이 `element[isOpen]` 식으로 접근이 가능하며, 이러한 모든 접근은 `isOpen`심볼 값이 실행 스코프 안에 있을 때만 가능하다.
+-  심볼 key는 충돌을 피하기 위해 만들어진 것이기 때문에, JavaScript의 일반적인 객체 조사 (`for-in`, `Object.keys` 등) 기능들은 심볼 key를 무시한다.
+    -   `object.getOwnPropertySymbols(obj)`를 사용하면 객체 안에 존재하는 심볼 key목록을 조회하는 것이 가능하다.
+    -   `Reflect.ownKeys(obj)`는 문자열 key와 심볼 key를 모두 리턴한다.
+
+
+<br />
+<br />
+
+# 정리 ✔
+  
+symbol은 원시타입으로 생성되면 변경되지 않고 속성을 부여할 수 없다.
+
+ <img
+    src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FeynOt2%2Fbtrd5jSOlCS%2FtFb4zeN4FRQj1r4e0FFUi0%2Fimg.png"
+    width="300"
+    className="m-auto"
+  />
+
+가장 큰 특징은 고유함이다. **주석이 같더라도 다른 심볼이다.**
+
+
+<br />
+
+➕
+
+다른 요소들과 달리, 심볼은 문자열로 자동 변환되지 않는다. 따라서 `String(symbol)` 또는 `symbol.toString()`을 써서 심볼을 명시적으로 문자열로 변환해야한다.
+
