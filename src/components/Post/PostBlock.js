@@ -12,7 +12,7 @@ const PostBlock = ({ slug, post }) => {
         <GatsbyImage
           image={image}
           alt={post.title}
-          className="w-100p md:w-56 rounded-lg mb-5 md:mb-0 md:mr-10"
+          className="w-100p md:w-56 md:min-w-56 rounded-lg mb-5 md:mb-0 md:mr-10"
         />
       )}
       <article
