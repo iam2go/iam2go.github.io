@@ -174,4 +174,28 @@ body {
     font-family: "Gowun Dodum";
     @apply italic pl-3 border-l-[4px] border-opacity-70 border-accent-default;
   }
+
+  .blog-post table {
+    margin: 20px 0;
+  }
+
+  .blog-post th {
+    padding: 10px;
+    font-weight: 600;
+    @apply bg-background-sub;
+  }
+  .blog-post th:first-child {
+    border-radius: 10px 0 0 10px;
+  }
+  .blog-post th:last-child {
+    border-radius: 0 10px 10px 0;
+  }
+
+  .blog-post td {
+    padding: 10px 20px;
+    @apply border-b-[1px] border-text-default/20;
+  }
+  .blog-post tr:last-child td {
+    border: none;
+  }
 }
