@@ -1,0 +1,248 @@
+---
+title: POST 요청을 사용한 SSE 구현기
+date: "2024-11-14"
+tags: [SSE]
+description:  SSE를 구현해본 경험을 잊지 않기 위해 남기는 기록입니다. 근데 이제 POST 요청을 곁들인.
+thumbnail: "./images/tech_thumbnail.jpeg"
+---
+
+HTTP프로토콜은 비연결성을 가진 프로토콜이다. 클라이언트가 서버에 요청을 보내면, 서버는 그 요청에 대한 응답을 완료한 후 연결을 끊는다. 이러한 특성때문에 서버와 지속적인 커넥션이 필요한 상황에서는 불편함이 발생할 수 있다. 실시간으로 서버로부터 데이터를 받아야 하는  채팅, 알림서비스처럼 실시간으로 서버에서 데이터를 받아야 하는 경우 HTTP의 기본 요청 -응답 방식만으로는 원할한 기능 구현이 힘들다.
+
+이를 해결하기 위해 활용되는 기술이 Polling, Long Polling, WebSocket, Server-Sent Events이다.
+
+<br/>
+<br/>
+
+# 실시간 데이터 통신 기술
+
+
+## Polling
+클라이언트가 주기적으로 서버로 요청을 보내서 응답을 확인하는 방식이다. 구현이 간단하고 모든 브라우저에서 지원되지만 자주 요청을 보내야 하기 때문에 서버에 부하가 될 수 있으며, 즉각적인 응답이 어려울 수 있다.
+
+## Long Polling
+클라이언트가 한번 요청을 보내고 일정시간동안 서버의 응답을 기다리는 방식이다. 서버는 새로운 데이터가 있을 때만 응답을 보내고, 이후 클라이언트는 다시 서버에게 요청을 보낸다. Polling에 비해 서버 리소스를 절약하며, 상대적으로 실시간성을 보장하지만 상태 변경이 빈번하게 발생한다면 Polling과 차이가 없어진다.
+
+## WebSoket
+`ws` ,`wss` 프로토콜을 사용하여 서버와 브라우저 간 연결을 유지한 상태로 데이터를 교환하는 방식이다. 데이터는 패킷(packet) 형태로 전달되며, 전송은 커넥션 중단과 추가 HTTP 요청 없이 양방향으로 이뤄진다.
+
+## SSE (Server-Sent Event)
+그리고 이제 SSE가 있다.
+
+SSE역시 서버와 브라우저간 연결을 유지한다. 언뜻보면 웹소켓과 비슷하지만 아래와 같은 차이점이있다.
+
+<table>
+    
+    <tr>
+        <th >WebSocket </th>
+        <th>EventSource</th>
+    </tr>
+    <tr>
+        <td>양방향통신. <br/> 클라이언트와 서버가 서로 메세지를 교환</td>
+        <td>단방향통신. 서버만 데이터 전송</td>
+    </tr>
+    <tr>
+        <td> Binary and text data </td>
+        <td> Only text</td>
+    </tr>
+    <tr>
+        <td> WebSocket protocol  </td>
+        <td> 일반 HTTP</td>
+    </tr>
+</table>
+
+
+<br/>
+WebSocket은 양방향 통신이 가능하기 때문에 다양한 실시간 데이터 전송에 유용하지만, 양방향이 필요 없는 경우에는 다소 과한 감이 있다.서버에서 데이터만 받아오면 되는 경우라면 단방향 통신인 SSE가 더 적합하다.
+
+<br/>
+나같은 경우, AI의 응답을 실시간으로 받아오기 위해 SSE 방식을 활용했다. 서버에서 클라이언트로 데이터만 전달되므로 양방향 통신이 필요하지 않았기 때문이다.
+
+문제 텍스트를 서버로 전송하고 이에 대한 답변을 실시간으로 받아와야 했는데, 문제 텍스트의 길이가 길어 **POST 요청**을 사용했다. 
+평소 프로젝트에서는 주로 Axios를 활용했지만, Axios는 POST 방식으로 SSE (Server-Sent Events)를 지원하지 않기 때문에 이번엔 **fetch API**를 사용하여 구현했다. 
+
+동일한 이유로, 일반적으로 SSE를 구현할때 `EventSource` 객체를 많이 사용하지만 `EventSource`는 GET 요청만 지원하므로 때문에 `ReadableStream`을 사용하여 SSE를 구현했다.
+
+
+<br/>
+<br/>
+
+# SSE 구현
+
+답변을 받아오는 매서드의 전체 코드는 아래와 같다.
+```
+const getAnswer = async (index: number) => {
+    let text = '';
+
+    try {
+        const controller = new AbortController();
+        controllerRef.current = controller;
+
+        // 서버로부터 스트리밍 데이터를 받아옴
+        const response = await getAnswerStream(questionList[questionNo].question_text, controller.signal);
+        if (!response.ok || !response.body) throw new Error('');
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        let resultNo: number | null = null; // 문제 정답
+        let incompleteChunk = '';
+
+        // 스트리밍 데이터 처리
+        await processStream(reader, decoder, (chunk: string) => {
+            const { parsedDataList, remain } = parseJSONStream(chunk, incompleteChunk);
+            incompleteChunk = remain;
+
+            // 추출한 데이터 텍스트에 추가, 상태 업데이트
+            text = updateTextAndState(parsedDataList, text);
+            // result_no를 전달받았다면, resultNo에 삽입
+            if (parsedDataList[parsedDataList.length - 1]?.result_no) {
+               resultNo = parseInt(parsedDataList[parsedDataList.length - 1].result_no)
+            }
+        });
+
+        // 답변 완료
+        completeAnswerProcessing(questionNo, resultNo, text);
+    } catch (error) {
+        handleError(error, questionNo, text);
+    }
+};
+```
+<br/>
+<br/>
+
+## 데이터 요청
+
+```
+/**
+ * @description 문제풀이 요청 (text/event-stream 형식으로 문제풀이를 요청합니다.)
+ */
+export const getAnswerStream = async (
+    questionText: string,
+    signal: AbortSignal
+): Promise<Response> => {
+    }
+    const response = await fetch(url, {
+            method: 'POST',
+            credentials: 'omit',
+            signal,
+            headers: {
+                'Content-Type': 'application/json',
+                cno: companyNo,
+            },
+            body: JSON.stringify({ question: questionText }),
+        });
+        
+     return response;
+}
+```
+서버에 데이터를 요청하는 API 호출 매서드는 위와 같다.  
+
+
+<br/>
+<br/>
+
+```
+const controller = new AbortController();
+controllerRef.current = controller;
+
+const response = await getAnswerStream(questionList[questionNo].question_text, controller.signal);
+```
+`getAnswer` 매서드에서 `AbortController` 객체를 생성하여 `getAnswerStream` 호출시 두번째 인자로 signal을 넘겨주었다.
+이 signal을 fetch요청에 삽입하여 필요 시 요청을 중단할 수 있도록 구현했다.
+
+
+<br/>
+<br/>
+
+## 스트림 데이터 처리
+
+`processStream` 매서드는 서버에서 반환된 `ReadableStream`을 읽어 들여 수신된 데이터를 부분적으로 처리한다. 각 데이터 조각이 수신될 때마다 chunk로 전달되며, 이 데이터를 JSON 형태로 파싱하여 필요한 데이터를 추출한다. 
+```
+const processStream = async (
+    reader: ReadableStreamDefaultReader<Uint8Array>, 
+    decoder: TextDecoder, 
+    onChunkReceived: (chunk: string) => void
+) => {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        onChunkReceived(chunk);
+    }
+};
+```
+`getReader()`를 통해 읽어온 스트림은 보통 청크 단위의 바이너리 데이터(Uint8Array) 형태로 제공된다. 따라서 `decoder.decode(value)` 를 통해 스트림을 문자열로 변환한다.
+
+
+<br/>
+<br/>
+서버에서 수신하는 `chunk` 값이 항상 완전한 JSON 형식으로 도착하는 것은 아니었다. 특히 JSON 데이터가 잘려서 여러 개의 청크로 나뉘어 전송될 경우, 파싱 과정에서 오류가 발생할 위험이 있었다. 이 문제를 해결하기 위해 `incompleteChunk` 변수를 사용하여 불완전한 청크들을 임시로 저장하고, 다음 청크를 수신할 때 이를 합쳐 완전한 JSON 형식으로 파싱하도록 처리했다.
+<br/>
+예를 들어, 데이터가 다음과 같이 두 개의 청크로 나뉘어 수신된다고 하자.
+<br/>
+1. 첫 번째 청크: `"{ text: '이렇게' } {text: '오고'} {text: '어쩔때는'} {text: '잘"`
+2. 두 번째 청크: `"려서옵니다' } { text: 'TT' }"`
+<br/>
+첫 번째 청크를 처리할 때 `parsedDataList`에는 `[ { text: '이렇게' }, { text: '오고' }, { text: '어쩔때는' } ]`와 같이 완전한 JSON 객체들만 담기고, 불완전한 JSON 데이터 `"{text: '잘"`는 `remain`에 저장된다.
+
+다음 청크를 수신시 이 `remain` 값을 새로운 청크와 결합하여 완전한 JSON 형태로 재구성한다. `parsedDataList`에 `"{ text: '잘려서옵니다' } { text: 'TT' }"` 가 담기게된다.
+<br/>
+
+```
+await processStream(reader, decoder, (chunk: string) => {
+            const { parsedDataList, remain } = parseJSONStream(chunk, incompleteChunk);
+            incompleteChunk = remain;
+
+        });
+```
+
+<br/>
+<br/>
+
+## 답변 업데이트
+
+추출한 데이터를 기존 텍스트에 추가하고,  실시간으로 state를 업데이트하여 사용자에게 반영된 답변을 보여준다.
+```
+const updateTextAndState = (parsedDataList: Record<string, string>[], currentText: string) => {
+    const newStreamText = parsedDataList.map(({ text }) => text ?? '').join('');
+    setStreamText(prev => prev + newStreamText);
+    return currentText + newStreamText;
+};
+```
+
+<br/>
+<br/>
+
+
+## 답변 완료
+
+문제에 대한 답변이 모두 완료되면 `completeAnswerProcessing` 를 호출한다.
+
+```
+const completeAnswerProcessing = (questionNo: number, resultNo: number | null, text: string) => {
+    updateQuestion(questionNo, resultNo, text);
+    if (questionList.length > questionNo + 1) {
+        moveOnNextQuestion(questionNo);
+    } else {
+        setIsAnswering(false);
+        addToast({ type: 'success', message: '문제풀이가 완료되었습니다.' });
+    }
+};
+```
+해당 문제에 대한 답변을 최종적으로 저장한 후 다음 문제로 넘어간다. 만약 마지막 문제라면, 문제풀이를 종료한다.
+
+<br/>
+<br/>
+
+## 답변 중지
+
+```
+ const onCancelAnswering = () => {
+        if (controllerRef.current) {
+            controllerRef.current.abort()
+        }
+    }
+```
+답변 생성을 중지할때는 `onCancelAnswering` 를 호출하여 요청을 중단한다.
+`controllerRef.current` 에는 `AbortController`  가 담겨져 있으므로, `controllerRef.current.abort()` 를 호출해 진행 중인 스트림을 중단하고 서버와의 연결을 종료한다.
