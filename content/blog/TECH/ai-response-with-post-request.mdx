@@ -1,0 +1,206 @@
+---
+title: POST 요청을 사용한 AI 응답 처리 구현기
+date: "2024-11-14"
+tags: [ReadableStream]
+description:  ReadableStream을 사용해본 경험을 잊지 않기 위해 남기는 기록입니다. 근데 이제 POST 요청을 곁들인.
+thumbnail: "./images/tech_thumbnail.jpeg"
+---
+
+
+Chat GPT에 질문을 하면 답변이 한번에 랜더링 되는 것이 아니라, 실시간으로 답변을 타이핑 하듯 글자가 출력된다. 이러한 방식은 단순한 시각적 효과를 넘어 사용자 경험 측면에서도 여러 이점을 제공한다.
+첫번째로는 전체 데이터가 로드될 때까지 기다리지 않고, 즉각적으로 답변을 출력하기 때문에 대기 시간이 줄어든 효과를 준다. 두번째로는 스트리밍 방식으로 제공함으로써 긴 응답도 점진적으로 정보를 습득하여 가독성을 높여준다.
+이러한 스트리밍 응답 방식을 구현하기 위해서는 `ReadableStream`이라는 기술이 활용된다.
+
+<br/>
+<br/>
+
+# `ReadableStream`이란
+`ReadableStream`은 웹 브라우저의 `Streams API`에서 제공하는 기능으로, 네트워크 응답을 청크 단위로 받아 처리할 수 있도록 돕는다. 
+서버에서 데이터를 청크 단위로 보내면, 클라이언트에서 `ReadableStream` 을 사용하여 데이터를 한 조각씩 읽고, 읽은 데이터를 사용자에게 즉시 렌더링하는 방식이다.
+
+
+이 `ReadableStream`을 사용해서 문제에 대한 AI 답변을 받아오는 기능을 구현보았다.
+
+<br/>
+<br/>
+
+# 스트리밍 데이터 처리 구현
+
+답변을 받아오는 매서드의 전체 코드는 아래와 같다.
+```
+const getAnswer = async (index: number) => {
+    let text = '';
+
+    try {
+        const controller = new AbortController();
+        controllerRef.current = controller;
+
+        // 서버로부터 스트리밍 데이터를 받아옴
+        const response = await getAnswerStream(questionList[questionNo].question_text, controller.signal);
+        if (!response.ok || !response.body) throw new Error('');
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        let resultNo: number | null = null; // 문제 정답
+        let incompleteChunk = '';
+
+        // 스트리밍 데이터 처리
+        await processStream(reader, decoder, (chunk: string) => {
+            const { parsedDataList, remain } = parseJSONStream(chunk, incompleteChunk);
+            incompleteChunk = remain;
+
+            // 추출한 데이터 텍스트에 추가, 상태 업데이트
+            text = updateTextAndState(parsedDataList, text);
+            // result_no를 전달받았다면, resultNo에 삽입
+            if (parsedDataList[parsedDataList.length - 1]?.result_no) {
+               resultNo = parseInt(parsedDataList[parsedDataList.length - 1].result_no)
+            }
+        });
+
+        // 답변 완료
+        completeAnswerProcessing(questionNo, resultNo, text);
+    } catch (error) {
+        handleError(error, questionNo, text);
+    }
+};
+```
+<br/>
+<br/>
+
+## 데이터 요청
+
+```
+/**
+ * @description 문제풀이 요청
+ */
+export const getAnswerStream = async (
+    questionText: string,
+    signal: AbortSignal
+): Promise<Response> => {
+    }
+    const response = await fetch(url, {
+            method: 'POST',
+            credentials: 'omit',
+            signal,
+            headers: {
+                'Content-Type': 'application/json',
+                cno: companyNo,
+            },
+            body: JSON.stringify({ question: questionText }),
+        });
+        
+     return response;
+}
+```
+서버에 데이터를 요청하는 API 호출 매서드는 위와 같다.  
+
+
+<br/>
+<br/>
+
+```
+const controller = new AbortController();
+controllerRef.current = controller;
+
+const response = await getAnswerStream(questionList[questionNo].question_text, controller.signal);
+```
+`getAnswer` 매서드에서 `AbortController` 객체를 생성하여 `getAnswerStream` 호출시 두번째 인자로 signal을 넘겨주었다.
+이 signal을 fetch요청에 삽입하여 필요 시 요청을 중단할 수 있도록 구현했다.
+
+
+<br/>
+<br/>
+
+## 스트림 데이터 처리
+
+`processStream` 매서드는 서버에서 반환된 `ReadableStream`을 읽어 들여 수신된 데이터를 부분적으로 처리한다. 각 데이터 조각이 수신될 때마다 chunk로 전달되며, 이 데이터를 JSON 형태로 파싱하여 필요한 데이터를 추출한다. 
+```
+const processStream = async (
+    reader: ReadableStreamDefaultReader<Uint8Array>, 
+    decoder: TextDecoder, 
+    onChunkReceived: (chunk: string) => void
+) => {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        onChunkReceived(chunk);
+    }
+};
+```
+`getReader()`를 통해 읽어온 스트림은 보통 청크 단위의 바이너리 데이터(Uint8Array) 형태로 제공된다. 따라서 `decoder.decode(value)` 를 통해 스트림을 문자열로 변환한다.
+
+
+<br/>
+<br/>
+서버에서 수신하는 `chunk` 값이 항상 완전한 JSON 형식으로 도착하는 것은 아니었다. 특히 JSON 데이터가 잘려서 여러 개의 청크로 나뉘어 전송될 경우, 파싱 과정에서 오류가 발생할 위험이 있었다. 이 문제를 해결하기 위해 `incompleteChunk` 변수를 사용하여 불완전한 청크들을 임시로 저장하고, 다음 청크를 수신할 때 이를 합쳐 완전한 JSON 형식으로 파싱하도록 처리했다.
+<br/>
+예를 들어, 데이터가 다음과 같이 두 개의 청크로 나뉘어 수신된다고 하자.
+<br/>
+1. 첫 번째 청크: `"{ text: '이렇게' } {text: '오고'} {text: '어쩔때는'} {text: '잘"`
+2. 두 번째 청크: `"려서옵니다' } { text: 'TT' }"`
+<br/>
+첫 번째 청크를 처리할 때 `parsedDataList`에는 `[ { text: '이렇게' }, { text: '오고' }, { text: '어쩔때는' } ]`와 같이 완전한 JSON 객체들만 담기고, 불완전한 JSON 데이터 `"{text: '잘"`는 `remain`에 저장된다.
+
+다음 청크를 수신시 이 `remain` 값을 새로운 청크와 결합하여 완전한 JSON 형태로 재구성한다. `parsedDataList`에 `"{ text: '잘려서옵니다' } { text: 'TT' }"` 가 담기게된다.
+<br/>
+
+```
+await processStream(reader, decoder, (chunk: string) => {
+            const { parsedDataList, remain } = parseJSONStream(chunk, incompleteChunk);
+            incompleteChunk = remain;
+
+        });
+```
+
+<br/>
+<br/>
+
+## 답변 업데이트
+
+추출한 데이터를 기존 텍스트에 추가하고,  실시간으로 state를 업데이트하여 사용자에게 반영된 답변을 보여준다.
+```
+const updateTextAndState = (parsedDataList: Record<string, string>[], currentText: string) => {
+    const newStreamText = parsedDataList.map(({ text }) => text ?? '').join('');
+    setStreamText(prev => prev + newStreamText);
+    return currentText + newStreamText;
+};
+```
+
+<br/>
+<br/>
+
+
+## 답변 완료
+
+문제에 대한 답변이 모두 완료되면 `completeAnswerProcessing` 를 호출한다.
+
+```
+const completeAnswerProcessing = (questionNo: number, resultNo: number | null, text: string) => {
+    updateQuestion(questionNo, resultNo, text);
+    if (questionList.length > questionNo + 1) {
+        moveOnNextQuestion(questionNo);
+    } else {
+        setIsAnswering(false);
+        addToast({ type: 'success', message: '문제풀이가 완료되었습니다.' });
+    }
+};
+```
+해당 문제에 대한 답변을 최종적으로 저장한 후 다음 문제로 넘어간다. 만약 마지막 문제라면, 문제풀이를 종료한다.
+
+<br/>
+<br/>
+
+## 답변 중지
+
+```
+ const onCancelAnswering = () => {
+        if (controllerRef.current) {
+            controllerRef.current.abort()
+        }
+    }
+```
+답변 생성을 중지할때는 `onCancelAnswering` 를 호출하여 요청을 중단한다.
+`controllerRef.current` 에는 `AbortController`  가 담겨져 있으므로, `controllerRef.current.abort()` 를 호출해 진행 중인 스트림을 중단하고 서버와의 연결을 종료한다.
